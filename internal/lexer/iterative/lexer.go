@@ -1,8 +1,6 @@
 package iterative
 
 import (
-	"unicode/utf8"
-
 	"github.com/w-h-a/interpreter/internal/lexer"
 	"github.com/w-h-a/interpreter/internal/token"
 )
@@ -16,51 +14,86 @@ type iterativeLexer struct {
 func (l *iterativeLexer) NextToken() token.Token {
 	var tk token.Token
 
+	l.skip()
+
 	switch char := l.next(); char {
 	case '=':
-		tk, _ = l.result(token.Assign)
+		tk, _ = l.generate(token.Assign)
 	case '+':
-		tk, _ = l.result(token.Plus)
+		tk, _ = l.generate(token.Plus)
 	case '(':
-		tk, _ = l.result(token.ParenLeft)
+		tk, _ = l.generate(token.ParenLeft)
 	case ')':
-		tk, _ = l.result(token.ParenRight)
+		tk, _ = l.generate(token.ParenRight)
 	case '{':
-		tk, _ = l.result(token.BraceLeft)
+		tk, _ = l.generate(token.BraceLeft)
 	case '}':
-		tk, _ = l.result(token.BraceRight)
+		tk, _ = l.generate(token.BraceRight)
 	case ',':
-		tk, _ = l.result(token.Comma)
+		tk, _ = l.generate(token.Comma)
 	case ';':
-		tk, _ = l.result(token.Semicolon)
+		tk, _ = l.generate(token.Semicolon)
 	case 0:
 		tk.Literal = ""
 		tk.Type = token.EOF
 	default:
-		tk, _ = l.result(token.Illegal)
+		if lexer.IsLetter(char) {
+			tk, _ = l.lexIdentifier()
+		} else if lexer.IsDigit(char) {
+			tk, _ = l.lexNumber()
+		} else {
+			tk, _ = l.generate(token.Illegal)
+		}
 	}
 
 	return tk
 }
 
-// next consumes the next rune
-func (l *iterativeLexer) next() rune {
+func (l *iterativeLexer) lexIdentifier() (token.Token, error) {
+	for l.pos < len(l.input) && lexer.IsLetter(l.input[l.pos]) {
+		l.pos += 1
+	}
+
+	literal := l.input[l.start:l.pos]
+
+	return l.generate(token.LookupIdent(literal))
+}
+
+func (l *iterativeLexer) lexNumber() (token.Token, error) {
+	for l.pos < len(l.input) && lexer.IsDigit(l.input[l.pos]) {
+		l.pos += 1
+	}
+
+	return l.generate(token.Int)
+}
+
+// generate returns a token and resets the start
+func (l *iterativeLexer) generate(t token.TokenType) (token.Token, error) {
+	tk, err := token.Factory(t, l.input[l.start:l.pos])
+	l.start = l.pos
+	return tk, err
+}
+
+// next consumes the next byte
+func (l *iterativeLexer) next() byte {
 	if l.pos >= len(l.input) {
 		return 0
 	}
 
-	r, size := utf8.DecodeRuneInString(l.input[l.pos:])
+	b := l.input[l.pos]
 
-	l.pos += size
+	l.pos += 1
 
-	return r
+	return b
 }
 
-// result returns a token and resets the start
-func (l *iterativeLexer) result(t token.TokenType) (token.Token, error) {
-	tk, err := token.Factory(t, l.input[l.start:l.pos])
+// skip skips whitespaces and resets the start
+func (l *iterativeLexer) skip() {
+	for l.pos < len(l.input) && lexer.IsSpace(l.input[l.pos]) {
+		l.pos += 1
+	}
+
 	l.start = l.pos
-	return tk, err
 }
 
 func New(input string) lexer.Lexer {
