@@ -4,28 +4,28 @@ type TokenType string
 
 const (
 	// Special tokens
-	TokenIllegal TokenType = "ILLEGAL"
-	TokenEOF     TokenType = "EOF"
+	Illegal TokenType = "ILLEGAL"
+	EOF     TokenType = "EOF"
 
 	// Identifiers + literals
-	TokenIdent TokenType = "IDENT"
-	TokenInt   TokenType = "INT"
+	Ident TokenType = "IDENT"
+	Int   TokenType = "INT"
 
 	// Operators
-	TokenAssign TokenType = "="
-	TokenPlus   TokenType = "+"
+	Assign TokenType = "="
+	Plus   TokenType = "+"
 
 	// Delimiters
-	TokenComma      TokenType = ","
-	TokenSemicolon  TokenType = ";"
-	TokenParenLeft  TokenType = "("
-	TokenParenRight TokenType = ")"
-	TokenBraceLeft  TokenType = "{"
-	TokenBraceRight TokenType = "}"
+	Comma      TokenType = ","
+	Semicolon  TokenType = ";"
+	ParenLeft  TokenType = "("
+	ParenRight TokenType = ")"
+	BraceLeft  TokenType = "{"
+	BraceRight TokenType = "}"
 
 	// Keywords
-	TokenFunction TokenType = "FUNCTION"
-	TokenLet      TokenType = "LET"
+	Function TokenType = "FUNCTION"
+	Let      TokenType = "LET"
 )
 
 type Token struct {
