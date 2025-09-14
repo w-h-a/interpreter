@@ -1,8 +1,6 @@
 package statemachine
 
 import (
-	"unicode/utf8"
-
 	"github.com/w-h-a/interpreter/internal/lexer"
 	"github.com/w-h-a/interpreter/internal/token"
 )
@@ -32,23 +30,32 @@ func (l *statemachineLexer) run() {
 	close(l.tokens)
 }
 
-// next consumes the next rune
-func (l *statemachineLexer) next() rune {
-	if l.pos >= len(l.input) {
-		return 0
-	}
-
-	r, size := utf8.DecodeRuneInString(l.input[l.pos:])
-
-	l.pos += size
-
-	return r
-}
-
 // emit sends a token to the channel and resets the start
 func (l *statemachineLexer) emit(t token.TokenType) {
 	tk, _ := token.Factory(t, l.input[l.start:l.pos])
 	l.tokens <- tk
+	l.start = l.pos
+}
+
+// next consumes the next byte
+func (l *statemachineLexer) next() byte {
+	if l.pos >= len(l.input) {
+		return 0
+	}
+
+	b := l.input[l.pos]
+
+	l.pos += 1
+
+	return b
+}
+
+// skip skips whitespace and resets the start
+func (l *statemachineLexer) skip() {
+	for l.pos < len(l.input) && lexer.IsSpace(l.input[l.pos]) {
+		l.pos += 1
+	}
+
 	l.start = l.pos
 }
 
