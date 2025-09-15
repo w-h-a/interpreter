@@ -19,7 +19,7 @@ type want struct {
 var (
 	testCases = []map[string]any{
 		{
-			"input": `=+(){},;`,
+			"input": `=+(){},;!-/*<>`,
 			"want": []want{
 				{token.Assign, "="},
 				{token.Plus, "+"},
@@ -29,7 +29,27 @@ var (
 				{token.BraceRight, "}"},
 				{token.Comma, ","},
 				{token.Semicolon, ";"},
+				{token.Bang, "!"},
+				{token.Minus, "-"},
+				{token.Slash, "/"},
+				{token.Asterisk, "*"},
+				{token.LessThan, "<"},
+				{token.GreaterThan, ">"},
 				{token.EOF, ""},
+			},
+		},
+		{
+			"input": `10 == 10;
+10 != 9;`,
+			"want": []want{
+				{token.Int, "10"},
+				{token.Identical, "=="},
+				{token.Int, "10"},
+				{token.Semicolon, ";"},
+				{token.Int, "10"},
+				{token.NotIdentical, "!="},
+				{token.Int, "9"},
+				{token.Semicolon, ";"},
 			},
 		},
 		{
@@ -39,6 +59,11 @@ let add = fn(x, y) {
 x + y;
 };
 let result = add(five, ten);
+if (5 < 10) {
+  return true;
+} else {
+  return false;
+}
 `,
 			"want": []want{
 				{token.Let, "let"},
@@ -77,6 +102,23 @@ let result = add(five, ten);
 				{token.Ident, "ten"},
 				{token.ParenRight, ")"},
 				{token.Semicolon, ";"},
+				{token.If, "if"},
+				{token.ParenLeft, "("},
+				{token.Int, "5"},
+				{token.LessThan, "<"},
+				{token.Int, "10"},
+				{token.ParenRight, ")"},
+				{token.BraceLeft, "{"},
+				{token.Return, "return"},
+				{token.True, "true"},
+				{token.Semicolon, ";"},
+				{token.BraceRight, "}"},
+				{token.Else, "else"},
+				{token.BraceLeft, "{"},
+				{token.Return, "return"},
+				{token.False, "false"},
+				{token.Semicolon, ";"},
+				{token.BraceRight, "}"},
 				{token.EOF, ""},
 			},
 		},

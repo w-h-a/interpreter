@@ -1,8 +1,13 @@
 package token
 
 var keywords = map[string]TokenType{
-	"fn":  Function,
-	"let": Let,
+	"fn":     Function,
+	"let":    Let,
+	"true":   True,
+	"false":  False,
+	"if":     If,
+	"else":   Else,
+	"return": Return,
 }
 
 func LookupIdent(ident string) TokenType {

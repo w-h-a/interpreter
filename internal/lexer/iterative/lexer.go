@@ -16,11 +16,60 @@ func (l *iterativeLexer) NextToken() token.Token {
 
 	l.skip()
 
+	switch char := l.peek(); {
+	case lexer.IsLetter(char):
+		tk, _ = l.lexIdentifier()
+	case lexer.IsDigit(char):
+		tk, _ = l.lexNumber()
+	default:
+		tk, _ = l.lexSymbol()
+	}
+
+	return tk
+}
+
+func (l *iterativeLexer) lexIdentifier() (token.Token, error) {
+	l.next()
+
+	for l.pos < len(l.input) && lexer.IsLetter(l.input[l.pos]) {
+		l.pos += 1
+	}
+
+	literal := l.input[l.start:l.pos]
+
+	return l.generate(token.LookupIdent(literal))
+}
+
+func (l *iterativeLexer) lexNumber() (token.Token, error) {
+	l.next()
+
+	for l.pos < len(l.input) && lexer.IsDigit(l.input[l.pos]) {
+		l.pos += 1
+	}
+
+	return l.generate(token.Int)
+}
+
+func (l *iterativeLexer) lexSymbol() (token.Token, error) {
+	var tk token.Token
+
 	switch char := l.next(); char {
 	case '=':
-		tk, _ = l.generate(token.Assign)
+		tk, _ = l.lexEqual()
 	case '+':
 		tk, _ = l.generate(token.Plus)
+	case '-':
+		tk, _ = l.generate(token.Minus)
+	case '!':
+		tk, _ = l.lexBang()
+	case '*':
+		tk, _ = l.generate(token.Asterisk)
+	case '/':
+		tk, _ = l.generate(token.Slash)
+	case '<':
+		tk, _ = l.generate(token.LessThan)
+	case '>':
+		tk, _ = l.generate(token.GreaterThan)
 	case '(':
 		tk, _ = l.generate(token.ParenLeft)
 	case ')':
@@ -37,34 +86,36 @@ func (l *iterativeLexer) NextToken() token.Token {
 		tk.Literal = ""
 		tk.Type = token.EOF
 	default:
-		if lexer.IsLetter(char) {
-			tk, _ = l.lexIdentifier()
-		} else if lexer.IsDigit(char) {
-			tk, _ = l.lexNumber()
-		} else {
-			tk, _ = l.generate(token.Illegal)
-		}
+		tk, _ = l.generate(token.Illegal)
 	}
 
-	return tk
+	return tk, nil
 }
 
-func (l *iterativeLexer) lexIdentifier() (token.Token, error) {
-	for l.pos < len(l.input) && lexer.IsLetter(l.input[l.pos]) {
-		l.pos += 1
+func (l *iterativeLexer) lexEqual() (token.Token, error) {
+	var tk token.Token
+
+	if l.peek() == '=' {
+		l.next()
+		tk, _ = l.generate(token.Identical)
+	} else {
+		tk, _ = l.generate(token.Assign)
 	}
 
-	literal := l.input[l.start:l.pos]
-
-	return l.generate(token.LookupIdent(literal))
+	return tk, nil
 }
 
-func (l *iterativeLexer) lexNumber() (token.Token, error) {
-	for l.pos < len(l.input) && lexer.IsDigit(l.input[l.pos]) {
-		l.pos += 1
+func (l *iterativeLexer) lexBang() (token.Token, error) {
+	var tk token.Token
+
+	if l.peek() == '=' {
+		l.next()
+		tk, _ = l.generate(token.NotIdentical)
+	} else {
+		tk, _ = l.generate(token.Bang)
 	}
 
-	return l.generate(token.Int)
+	return tk, nil
 }
 
 // generate returns a token and resets the start
@@ -85,6 +136,15 @@ func (l *iterativeLexer) next() byte {
 	l.pos += 1
 
 	return b
+}
+
+// peek checks the next byte but does not consume it
+func (l *iterativeLexer) peek() byte {
+	if l.pos >= len(l.input) {
+		return 0
+	}
+
+	return l.input[l.pos]
 }
 
 // skip skips whitespaces and resets the start
