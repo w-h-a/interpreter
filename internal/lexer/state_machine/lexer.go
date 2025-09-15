@@ -50,6 +50,15 @@ func (l *statemachineLexer) next() byte {
 	return b
 }
 
+// peek checks the next byte but does not consume it
+func (l *statemachineLexer) peek() byte {
+	if l.pos >= len(l.input) {
+		return 0
+	}
+
+	return l.input[l.pos]
+}
+
 // skip skips whitespace and resets the start
 func (l *statemachineLexer) skip() {
 	for l.pos < len(l.input) && lexer.IsSpace(l.input[l.pos]) {
