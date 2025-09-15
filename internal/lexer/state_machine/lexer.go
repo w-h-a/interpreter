@@ -23,18 +23,17 @@ func (l *statemachineLexer) NextToken() token.Token {
 	return tk
 }
 
-func (l *statemachineLexer) run() {
-	for state := lexToken; state != nil; {
-		state = state(l)
-	}
-	close(l.tokens)
-}
-
-// emit sends a token to the channel and resets the start
 func (l *statemachineLexer) emit(t token.TokenType) {
 	tk, _ := token.Factory(t, l.input[l.start:l.pos])
 	l.tokens <- tk
 	l.start = l.pos
+}
+
+func (l *statemachineLexer) run() {
+	for state := lex; state != nil; {
+		state = state(l)
+	}
+	close(l.tokens)
 }
 
 // next consumes the next byte
@@ -71,7 +70,7 @@ func (l *statemachineLexer) skip() {
 func New(input string) lexer.Lexer {
 	l := &statemachineLexer{
 		input:  input,
-		tokens: make(chan token.Token),
+		tokens: make(chan token.Token, 2),
 	}
 
 	go l.run()

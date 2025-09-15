@@ -7,10 +7,12 @@ import (
 
 type stateFn func(*statemachineLexer) stateFn
 
-func lexToken(l *statemachineLexer) stateFn {
+func lex(l *statemachineLexer) stateFn {
 	l.skip()
 
 	switch char := l.peek(); {
+	case char == 0:
+		return lexStop
 	case lexer.IsLetter(char):
 		return lexIdentifier
 	case lexer.IsDigit(char):
@@ -31,7 +33,7 @@ func lexIdentifier(l *statemachineLexer) stateFn {
 
 	l.emit(token.LookupIdent(literal))
 
-	return lexToken
+	return lex
 }
 
 func lexNumber(l *statemachineLexer) stateFn {
@@ -43,7 +45,7 @@ func lexNumber(l *statemachineLexer) stateFn {
 
 	l.emit(token.Int)
 
-	return lexToken
+	return lex
 }
 
 func lexSymbol(l *statemachineLexer) stateFn {
@@ -76,14 +78,11 @@ func lexSymbol(l *statemachineLexer) stateFn {
 		l.emit(token.Comma)
 	case ';':
 		l.emit(token.Semicolon)
-	case 0:
-		l.emit(token.EOF)
-		return nil
 	default:
 		l.emit(token.Illegal)
 	}
 
-	return lexToken
+	return lex
 }
 
 func lexEqual(l *statemachineLexer) stateFn {
@@ -94,7 +93,7 @@ func lexEqual(l *statemachineLexer) stateFn {
 		l.emit(token.Assign)
 	}
 
-	return lexToken
+	return lex
 }
 
 func lexBang(l *statemachineLexer) stateFn {
@@ -105,5 +104,10 @@ func lexBang(l *statemachineLexer) stateFn {
 		l.emit(token.Bang)
 	}
 
-	return lexToken
+	return lex
+}
+
+func lexStop(l *statemachineLexer) stateFn {
+	l.emit(token.EOF)
+	return nil
 }

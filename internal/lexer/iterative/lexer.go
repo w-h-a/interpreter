@@ -6,29 +6,42 @@ import (
 )
 
 type iterativeLexer struct {
-	input string
-	start int
-	pos   int
+	input  string
+	start  int
+	pos    int
+	tokens chan token.Token
 }
 
 func (l *iterativeLexer) NextToken() token.Token {
-	var tk token.Token
-
-	l.skip()
-
-	switch char := l.peek(); {
-	case lexer.IsLetter(char):
-		tk, _ = l.lexIdentifier()
-	case lexer.IsDigit(char):
-		tk, _ = l.lexNumber()
-	default:
-		tk, _ = l.lexSymbol()
+	tk, ok := <-l.tokens
+	if !ok {
+		return token.Token{
+			Type:    token.EOF,
+			Literal: "",
+		}
 	}
-
 	return tk
 }
 
-func (l *iterativeLexer) lexIdentifier() (token.Token, error) {
+func (l *iterativeLexer) lex() bool {
+	l.skip()
+
+	switch char := l.peek(); {
+	case char == 0:
+		l.lexStop()
+		return false
+	case lexer.IsLetter(char):
+		l.lexIdentifier()
+	case lexer.IsDigit(char):
+		l.lexNumber()
+	default:
+		l.lexSymbol()
+	}
+
+	return true
+}
+
+func (l *iterativeLexer) lexIdentifier() {
 	l.next()
 
 	for l.pos < len(l.input) && lexer.IsLetter(l.input[l.pos]) {
@@ -37,92 +50,86 @@ func (l *iterativeLexer) lexIdentifier() (token.Token, error) {
 
 	literal := l.input[l.start:l.pos]
 
-	return l.generate(token.LookupIdent(literal))
+	l.emit(token.LookupIdent(literal))
 }
 
-func (l *iterativeLexer) lexNumber() (token.Token, error) {
+func (l *iterativeLexer) lexNumber() {
 	l.next()
 
 	for l.pos < len(l.input) && lexer.IsDigit(l.input[l.pos]) {
 		l.pos += 1
 	}
 
-	return l.generate(token.Int)
+	l.emit(token.Int)
 }
 
-func (l *iterativeLexer) lexSymbol() (token.Token, error) {
-	var tk token.Token
-
+func (l *iterativeLexer) lexSymbol() {
 	switch char := l.next(); char {
 	case '=':
-		tk, _ = l.lexEqual()
+		l.lexEqual()
 	case '+':
-		tk, _ = l.generate(token.Plus)
+		l.emit(token.Plus)
 	case '-':
-		tk, _ = l.generate(token.Minus)
+		l.emit(token.Minus)
 	case '!':
-		tk, _ = l.lexBang()
+		l.lexBang()
 	case '*':
-		tk, _ = l.generate(token.Asterisk)
+		l.emit(token.Asterisk)
 	case '/':
-		tk, _ = l.generate(token.Slash)
+		l.emit(token.Slash)
 	case '<':
-		tk, _ = l.generate(token.LessThan)
+		l.emit(token.LessThan)
 	case '>':
-		tk, _ = l.generate(token.GreaterThan)
+		l.emit(token.GreaterThan)
 	case '(':
-		tk, _ = l.generate(token.ParenLeft)
+		l.emit(token.ParenLeft)
 	case ')':
-		tk, _ = l.generate(token.ParenRight)
+		l.emit(token.ParenRight)
 	case '{':
-		tk, _ = l.generate(token.BraceLeft)
+		l.emit(token.BraceLeft)
 	case '}':
-		tk, _ = l.generate(token.BraceRight)
+		l.emit(token.BraceRight)
 	case ',':
-		tk, _ = l.generate(token.Comma)
+		l.emit(token.Comma)
 	case ';':
-		tk, _ = l.generate(token.Semicolon)
-	case 0:
-		tk.Literal = ""
-		tk.Type = token.EOF
+		l.emit(token.Semicolon)
 	default:
-		tk, _ = l.generate(token.Illegal)
+		l.emit(token.Illegal)
 	}
-
-	return tk, nil
 }
 
-func (l *iterativeLexer) lexEqual() (token.Token, error) {
-	var tk token.Token
-
+func (l *iterativeLexer) lexEqual() {
 	if l.peek() == '=' {
 		l.next()
-		tk, _ = l.generate(token.Identical)
+		l.emit(token.Identical)
 	} else {
-		tk, _ = l.generate(token.Assign)
+		l.emit(token.Assign)
 	}
-
-	return tk, nil
 }
 
-func (l *iterativeLexer) lexBang() (token.Token, error) {
-	var tk token.Token
-
+func (l *iterativeLexer) lexBang() {
 	if l.peek() == '=' {
 		l.next()
-		tk, _ = l.generate(token.NotIdentical)
+		l.emit(token.NotIdentical)
 	} else {
-		tk, _ = l.generate(token.Bang)
+		l.emit(token.Bang)
 	}
-
-	return tk, nil
 }
 
-// generate returns a token and resets the start
-func (l *iterativeLexer) generate(t token.TokenType) (token.Token, error) {
-	tk, err := token.Factory(t, l.input[l.start:l.pos])
+func (l *iterativeLexer) lexStop() {
+	l.emit(token.EOF)
+}
+
+func (l *iterativeLexer) emit(t token.TokenType) {
+	tk, _ := token.Factory(t, l.input[l.start:l.pos])
+	l.tokens <- tk
 	l.start = l.pos
-	return tk, err
+}
+
+func (l *iterativeLexer) run() {
+	for l.lex() {
+	}
+	close(l.tokens)
 }
 
 // next consumes the next byte
@@ -158,8 +165,11 @@ func (l *iterativeLexer) skip() {
 
 func New(input string) lexer.Lexer {
 	l := &iterativeLexer{
-		input: input,
+		input:  input,
+		tokens: make(chan token.Token, 2),
 	}
+
+	go l.run()
 
 	return l
 }
