@@ -11,17 +11,17 @@ type lexer struct {
 	tokens chan token.Token
 }
 
-func (l *lexer) emit(t token.TokenType) {
-	tk := token.Factory(t, l.input[l.start:l.pos])
-	l.tokens <- tk
-	l.start = l.pos
-}
-
 func (l *lexer) run() {
 	for state := lex; state != nil; {
 		state = state(l)
 	}
 	close(l.tokens)
+}
+
+func (l *lexer) emit(t token.TokenType) {
+	tk := token.Factory(t, l.input[l.start:l.pos])
+	l.tokens <- tk
+	l.start = l.pos
 }
 
 func (l *lexer) next() byte {
