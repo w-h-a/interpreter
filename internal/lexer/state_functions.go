@@ -1,31 +1,30 @@
-package statemachine
+package lexer
 
 import (
-	"github.com/w-h-a/interpreter/internal/lexer"
 	"github.com/w-h-a/interpreter/internal/token"
 )
 
-type stateFn func(*statemachineLexer) stateFn
+type stateFn func(*lexer) stateFn
 
-func lex(l *statemachineLexer) stateFn {
+func lex(l *lexer) stateFn {
 	l.skip()
 
 	switch char := l.peek(); {
 	case char == 0:
 		return lexStop
-	case lexer.IsLetter(char):
+	case IsLetter(char):
 		return lexIdentifier
-	case lexer.IsDigit(char):
+	case IsDigit(char):
 		return lexNumber
 	default:
 		return lexSymbol
 	}
 }
 
-func lexIdentifier(l *statemachineLexer) stateFn {
+func lexIdentifier(l *lexer) stateFn {
 	l.next()
 
-	for l.pos < len(l.input) && lexer.IsLetter(l.input[l.pos]) {
+	for l.pos < len(l.input) && IsLetter(l.input[l.pos]) {
 		l.pos += 1
 	}
 
@@ -36,10 +35,10 @@ func lexIdentifier(l *statemachineLexer) stateFn {
 	return lex
 }
 
-func lexNumber(l *statemachineLexer) stateFn {
+func lexNumber(l *lexer) stateFn {
 	l.next()
 
-	for l.pos < len(l.input) && lexer.IsDigit(l.input[l.pos]) {
+	for l.pos < len(l.input) && IsDigit(l.input[l.pos]) {
 		l.pos += 1
 	}
 
@@ -48,7 +47,7 @@ func lexNumber(l *statemachineLexer) stateFn {
 	return lex
 }
 
-func lexSymbol(l *statemachineLexer) stateFn {
+func lexSymbol(l *lexer) stateFn {
 	switch char := l.next(); char {
 	case '=':
 		return lexEqual
@@ -85,7 +84,7 @@ func lexSymbol(l *statemachineLexer) stateFn {
 	return lex
 }
 
-func lexEqual(l *statemachineLexer) stateFn {
+func lexEqual(l *lexer) stateFn {
 	if l.peek() == '=' {
 		l.next()
 		l.emit(token.Identical)
@@ -96,7 +95,7 @@ func lexEqual(l *statemachineLexer) stateFn {
 	return lex
 }
 
-func lexBang(l *statemachineLexer) stateFn {
+func lexBang(l *lexer) stateFn {
 	if l.peek() == '=' {
 		l.next()
 		l.emit(token.NotIdentical)
@@ -107,7 +106,7 @@ func lexBang(l *statemachineLexer) stateFn {
 	return lex
 }
 
-func lexStop(l *statemachineLexer) stateFn {
+func lexStop(l *lexer) stateFn {
 	l.emit(token.EOF)
 	return nil
 }

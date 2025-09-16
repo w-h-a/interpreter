@@ -6,8 +6,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/w-h-a/interpreter/internal/lexer"
-	"github.com/w-h-a/interpreter/internal/lexer/iterative"
-	statemachine "github.com/w-h-a/interpreter/internal/lexer/state_machine"
 	"github.com/w-h-a/interpreter/internal/token"
 )
 
@@ -50,6 +48,7 @@ var (
 				{token.NotIdentical, "!="},
 				{token.Int, "9"},
 				{token.Semicolon, ";"},
+				{token.EOF, ""},
 			},
 		},
 		{
@@ -125,7 +124,7 @@ if (5 < 10) {
 	}
 )
 
-func TestIterativeLexer(t *testing.T) {
+func TestLexer(t *testing.T) {
 	if len(os.Getenv("INTEGRATION")) > 0 {
 		t.Skip("SKIPPING UNIT TEST")
 		return
@@ -133,28 +132,17 @@ func TestIterativeLexer(t *testing.T) {
 
 	for _, tc := range testCases {
 		input := tc["input"]
-		l := iterative.New(input.(string))
-		runLexerTest(t, tc["want"].([]want), l)
+		tks := lexer.Lex(input.(string))
+		runLexerTest(t, tc["want"].([]want), tks)
 	}
 }
 
-func TestStatemachineLexer(t *testing.T) {
-	if len(os.Getenv("INTEGRATION")) > 0 {
-		t.Skip("SKIPPING UNIT TEST")
-		return
+func runLexerTest(t *testing.T, wants []want, tks chan token.Token) {
+	for i := range wants {
+		tk := <-tks
+		require.Equal(t, wants[i].expectedType, tk.Type)
+		require.Equal(t, wants[i].expectedLiteral, tk.Literal)
 	}
-
-	for _, tc := range testCases {
-		input := tc["input"]
-		l := statemachine.New(input.(string))
-		runLexerTest(t, tc["want"].([]want), l)
-	}
-}
-
-func runLexerTest(t *testing.T, wants []want, l lexer.Lexer) {
-	for _, want := range wants {
-		tk := l.NextToken()
-		require.Equal(t, want.expectedType, tk.Type)
-		require.Equal(t, want.expectedLiteral, tk.Literal)
-	}
+	_, ok := <-tks
+	require.False(t, ok, "channel was not closed")
 }
