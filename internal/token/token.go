@@ -1,8 +1,8 @@
 package token
 
-func Factory(t TokenType, char string) (Token, error) {
+func Factory(t TokenType, char string) Token {
 	return Token{
 		Type:    t,
 		Literal: char,
-	}, nil
+	}
 }
