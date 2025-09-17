@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/w-h-a/interpreter/internal/lexer"
+	"github.com/w-h-a/interpreter/internal/repl/lexer"
 	"github.com/w-h-a/interpreter/internal/token"
 )
 
