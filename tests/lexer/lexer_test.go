@@ -15,10 +15,13 @@ type want struct {
 }
 
 var (
-	testCases = []map[string]any{
+	testCases = []struct {
+		input string
+		wants []want
+	}{
 		{
-			"input": `=+(){},;!-/*<>`,
-			"want": []want{
+			input: `=+(){},;!-/*<>`,
+			wants: []want{
 				{token.Assign, "="},
 				{token.Plus, "+"},
 				{token.ParenLeft, "("},
@@ -37,9 +40,9 @@ var (
 			},
 		},
 		{
-			"input": `10 == 10;
+			input: `10 == 10;
 10 != 9;`,
-			"want": []want{
+			wants: []want{
 				{token.Int, "10"},
 				{token.Identical, "=="},
 				{token.Int, "10"},
@@ -52,7 +55,7 @@ var (
 			},
 		},
 		{
-			"input": `let five = 5;
+			input: `let five = 5;
 let ten = 10;
 let add = fn(x, y) {
 x + y;
@@ -64,7 +67,7 @@ if (5 < 10) {
   return false;
 }
 `,
-			"want": []want{
+			wants: []want{
 				{token.Let, "let"},
 				{token.Ident, "five"},
 				{token.Assign, "="},
@@ -131,9 +134,8 @@ func TestLexer(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		input := tc["input"]
-		tks := lexer.Lex(input.(string))
-		runLexerTest(t, tc["want"].([]want), tks)
+		tks := lexer.Lex(tc.input)
+		runLexerTest(t, tc.wants, tks)
 	}
 }
 
