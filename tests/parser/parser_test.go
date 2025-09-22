@@ -1,7 +1,6 @@
 package parser
 
 import (
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -19,8 +18,8 @@ type wantError struct {
 	expectedError string
 }
 
-var (
-	happyTestCases = []struct {
+func TestLetStatements(t *testing.T) {
+	happyTestCases := []struct {
 		input string
 		wants []want
 	}{
@@ -32,36 +31,11 @@ let y = 10;
 let foobar = 838383;
 `,
 			wants: []want{
-				{"x"},
-				{"y"},
-				{"foobar"},
+				{expectedIdentifier: "x"},
+				{expectedIdentifier: "y"},
+				{expectedIdentifier: "foobar"},
 			},
 		},
-	}
-
-	errorTestCases = []struct {
-		input string
-		wants []wantError
-	}{
-		{
-			input: `
-let x 5;
-let = 10;
-let 838383;
-`,
-			wants: []wantError{
-				{"expected next token to be =, got INT"},
-				{"expected next token to be IDENT, got ="},
-				{"expected next token to be IDENT, got INT"},
-			},
-		},
-	}
-)
-
-func TestLetStatements(t *testing.T) {
-	if len(os.Getenv("INTEGRATION")) > 0 {
-		t.Skip("SKIPPING UNIT TEST")
-		return
 	}
 
 	for _, tc := range happyTestCases {
@@ -94,9 +68,22 @@ func testLetStatement(t *testing.T, wants []want, stmts []ast.Statement) {
 }
 
 func TestLetStatements_Errors(t *testing.T) {
-	if len(os.Getenv("INTEGRATION")) > 0 {
-		t.Skip("SKIPPING UNIT TEST")
-		return
+	errorTestCases := []struct {
+		input string
+		wants []wantError
+	}{
+		{
+			input: `
+let x 5;
+let = 10;
+let 838383;
+`,
+			wants: []wantError{
+				{"expected next token to be =, got INT"},
+				{"expected next token to be IDENT, got ="},
+				{"expected next token to be IDENT, got INT"},
+			},
+		},
 	}
 
 	for _, tc := range errorTestCases {
@@ -117,3 +104,49 @@ func testLetStatements_errors(t *testing.T, wants []wantError, errors []string) 
 		require.Equal(t, want.expectedError, errors[i])
 	}
 }
+
+func TestReturnStatements(t *testing.T) {
+	happyTestCases := []struct {
+		input string
+		wants []want
+	}{
+		{
+			input: `
+return 5;
+return 10;
+return 993322;
+`,
+			wants: []want{
+				{},
+				{},
+				{},
+			},
+		},
+	}
+
+	for _, tc := range happyTestCases {
+		tks := lexer.Lex(tc.input)
+		p := parser.New(tks)
+
+		program := p.ParseProgram()
+		errors := p.Errors()
+
+		require.Equal(t, len(tc.wants), len(program.Statements))
+		require.Equal(t, 0, len(errors))
+
+		testReturnStatement(t, tc.wants, program.Statements)
+	}
+}
+
+func testReturnStatement(t *testing.T, wants []want, stmts []ast.Statement) {
+	for i := range wants {
+		s := stmts[i]
+		require.Equal(t, "return", s.TokenLiteral())
+
+		_, ok := s.(*statement.Return)
+		require.True(t, ok)
+	}
+}
+
+// TODO
+// func TestReturnStatements_Errors(t *testing.T) {}

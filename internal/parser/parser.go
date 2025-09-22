@@ -39,6 +39,8 @@ func (p *Parser) parseStatement() ast.Statement {
 	switch p.curToken.Type {
 	case token.Let:
 		return p.parseLetStatement()
+	case token.Return:
+		return p.parseReturnStatement()
 	default:
 		return nil
 	}
@@ -64,6 +66,20 @@ func (p *Parser) parseLetStatement() *statement.Let {
 	p.nextToken()
 
 	// TODO: RHS expression
+
+	for p.curToken.Type != token.Semicolon {
+		p.nextToken()
+	}
+
+	return stmt
+}
+
+func (p *Parser) parseReturnStatement() *statement.Return {
+	stmt := &statement.Return{Token: p.curToken}
+
+	p.nextToken()
+
+	// TODO: expression
 
 	for p.curToken.Type != token.Semicolon {
 		p.nextToken()
