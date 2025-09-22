@@ -1,7 +1,6 @@
 package lexer
 
 import (
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -128,11 +127,6 @@ if (5 < 10) {
 )
 
 func TestLexer(t *testing.T) {
-	if len(os.Getenv("INTEGRATION")) > 0 {
-		t.Skip("SKIPPING UNIT TEST")
-		return
-	}
-
 	for _, tc := range testCases {
 		tks := lexer.Lex(tc.input)
 		runLexerTest(t, tc.wants, tks)
