@@ -1,7 +1,10 @@
 package ast
 
+import "strings"
+
 type Node interface {
 	TokenLiteral() string
+	String() string
 }
 
 type Statement interface {
@@ -24,4 +27,14 @@ func (p *Program) TokenLiteral() string {
 	}
 
 	return ""
+}
+
+func (p *Program) String() string {
+	var out strings.Builder
+
+	for _, s := range p.Statements {
+		out.WriteString(s.String())
+	}
+
+	return out.String()
 }
