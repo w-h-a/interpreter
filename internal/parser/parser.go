@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/w-h-a/interpreter/internal/parser/ast"
@@ -23,9 +24,8 @@ func (p *Parser) ParseProgram() *ast.Program {
 	program.Statements = []ast.Statement{}
 
 	for p.curToken.Type != token.EOF {
-		stmt := p.parseStatement()
-		// this is required
-		if stmt != nil {
+		stmt, err := p.parseStatement()
+		if err == nil {
 			program.Statements = append(program.Statements, stmt)
 		}
 		p.nextToken()
@@ -38,7 +38,7 @@ func (p *Parser) Errors() []string {
 	return p.errors
 }
 
-func (p *Parser) parseStatement() ast.Statement {
+func (p *Parser) parseStatement() (ast.Statement, error) {
 	switch p.curToken.Type {
 	case token.Let:
 		return p.parseLetStatement()
@@ -49,12 +49,13 @@ func (p *Parser) parseStatement() ast.Statement {
 	}
 }
 
-func (p *Parser) parseLetStatement() *statement.Let {
+func (p *Parser) parseLetStatement() (*statement.Let, error) {
 	stmt := &statement.Let{Token: p.curToken}
 
 	if p.peekToken.Type != token.Ident {
-		p.appendError(fmt.Sprintf("expected next token to be %s, got %s", token.Ident, p.peekToken.Type))
-		return nil
+		errDetail := fmt.Sprintf("expected next token to be %s, got %s", token.Ident, p.peekToken.Type)
+		p.appendError(errDetail)
+		return nil, errors.New(errDetail)
 	}
 
 	p.nextToken()
@@ -62,8 +63,9 @@ func (p *Parser) parseLetStatement() *statement.Let {
 	stmt.Name = &expression.Identifier{Token: p.curToken, Value: p.curToken.Literal}
 
 	if p.peekToken.Type != token.Assign {
-		p.appendError(fmt.Sprintf("expected next token to be %s, got %s", token.Assign, p.peekToken.Type))
-		return nil
+		errDetail := fmt.Sprintf("expected next token to be %s, got %s", token.Assign, p.peekToken.Type)
+		p.appendError(errDetail)
+		return nil, errors.New(errDetail)
 	}
 
 	p.nextToken()
@@ -74,10 +76,10 @@ func (p *Parser) parseLetStatement() *statement.Let {
 		p.nextToken()
 	}
 
-	return stmt
+	return stmt, nil
 }
 
-func (p *Parser) parseReturnStatement() *statement.Return {
+func (p *Parser) parseReturnStatement() (*statement.Return, error) {
 	stmt := &statement.Return{Token: p.curToken}
 
 	p.nextToken()
@@ -88,32 +90,38 @@ func (p *Parser) parseReturnStatement() *statement.Return {
 		p.nextToken()
 	}
 
-	return stmt
+	return stmt, nil
 }
 
-func (p *Parser) parseExpressionStatement() *statement.Expression {
+func (p *Parser) parseExpressionStatement() (*statement.Expression, error) {
 	stmt := &statement.Expression{Token: p.curToken}
 
-	stmt.Expression = p.parseExpression()
+	var err error
+
+	stmt.Expression, err = p.parseExpression()
 
 	if p.peekToken.Type == token.Semicolon {
 		p.nextToken()
 	}
 
-	return stmt
+	return stmt, err
 }
 
-func (p *Parser) parseExpression() ast.Expression {
+func (p *Parser) parseExpression() (ast.Expression, error) {
 	parsePrefixExpression := p.parsePrefixFns[p.curToken.Type]
 
 	if parsePrefixExpression == nil {
-		p.appendError(fmt.Sprintf("no parse prefix function for %s found", p.curToken.Type))
-		return nil
+		errDetail := fmt.Sprintf("no parse prefix function for %s found", p.curToken.Type)
+		p.appendError(errDetail)
+		return nil, errors.New(errDetail)
 	}
 
-	leftExp := parsePrefixExpression(p)
+	leftExp, err := parsePrefixExpression(p)
+	if err != nil {
+		return nil, err
+	}
 
-	return leftExp
+	return leftExp, nil
 }
 
 func (p *Parser) appendError(msg string) {
