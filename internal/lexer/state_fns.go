@@ -4,9 +4,9 @@ import (
 	"github.com/w-h-a/interpreter/internal/token"
 )
 
-type stateFn func(*lexer) stateFn
+type stateFn func(*Lexer) stateFn
 
-func lex(l *lexer) stateFn {
+func lex(l *Lexer) stateFn {
 	l.skip()
 
 	switch char := l.peek(); {
@@ -21,7 +21,7 @@ func lex(l *lexer) stateFn {
 	}
 }
 
-func lexIdentifier(l *lexer) stateFn {
+func lexIdentifier(l *Lexer) stateFn {
 	l.next()
 
 	for l.pos < len(l.input) && IsLetter(l.input[l.pos]) {
@@ -35,7 +35,7 @@ func lexIdentifier(l *lexer) stateFn {
 	return lex
 }
 
-func lexNumber(l *lexer) stateFn {
+func lexNumber(l *Lexer) stateFn {
 	l.next()
 
 	for l.pos < len(l.input) && IsDigit(l.input[l.pos]) {
@@ -47,7 +47,7 @@ func lexNumber(l *lexer) stateFn {
 	return lex
 }
 
-func lexSymbol(l *lexer) stateFn {
+func lexSymbol(l *Lexer) stateFn {
 	switch char := l.next(); char {
 	case '=':
 		return lexEqual
@@ -84,7 +84,7 @@ func lexSymbol(l *lexer) stateFn {
 	return lex
 }
 
-func lexEqual(l *lexer) stateFn {
+func lexEqual(l *Lexer) stateFn {
 	if l.peek() == '=' {
 		l.next()
 		l.emit(token.Identical)
@@ -95,7 +95,7 @@ func lexEqual(l *lexer) stateFn {
 	return lex
 }
 
-func lexBang(l *lexer) stateFn {
+func lexBang(l *Lexer) stateFn {
 	if l.peek() == '=' {
 		l.next()
 		l.emit(token.NotIdentical)
@@ -106,7 +106,7 @@ func lexBang(l *lexer) stateFn {
 	return lex
 }
 
-func lexStop(l *lexer) stateFn {
+func lexStop(l *Lexer) stateFn {
 	l.emit(token.EOF)
 	return nil
 }

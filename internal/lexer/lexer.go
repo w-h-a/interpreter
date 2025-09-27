@@ -4,27 +4,27 @@ import (
 	"github.com/w-h-a/interpreter/internal/token"
 )
 
-type lexer struct {
+type Lexer struct {
 	input  string
 	start  int
 	pos    int
 	tokens chan token.Token
 }
 
-func (l *lexer) run() {
+func (l *Lexer) run() {
 	for state := lex; state != nil; {
 		state = state(l)
 	}
 	close(l.tokens)
 }
 
-func (l *lexer) emit(t token.TokenType) {
+func (l *Lexer) emit(t token.TokenType) {
 	tk := token.Factory(t, l.input[l.start:l.pos])
 	l.tokens <- tk
 	l.start = l.pos
 }
 
-func (l *lexer) next() byte {
+func (l *Lexer) next() byte {
 	if l.pos >= len(l.input) {
 		return 0
 	}
@@ -36,7 +36,7 @@ func (l *lexer) next() byte {
 	return b
 }
 
-func (l *lexer) peek() byte {
+func (l *Lexer) peek() byte {
 	if l.pos >= len(l.input) {
 		return 0
 	}
@@ -44,7 +44,7 @@ func (l *lexer) peek() byte {
 	return l.input[l.pos]
 }
 
-func (l *lexer) skip() {
+func (l *Lexer) skip() {
 	for l.pos < len(l.input) && IsSpace(l.input[l.pos]) {
 		l.pos += 1
 	}
@@ -55,7 +55,7 @@ func (l *lexer) skip() {
 func Lex(input string) chan token.Token {
 	tks := make(chan token.Token, 2)
 
-	l := &lexer{
+	l := &Lexer{
 		input:  input,
 		tokens: tks,
 	}
