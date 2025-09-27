@@ -6,10 +6,10 @@ import (
 )
 
 type (
-	parsePrefixExpression func(*Parser) ast.Expression
-	parseInfixExpression  func(*Parser, ast.Expression) ast.Expression
+	parsePrefixExpression func(*Parser) (ast.Expression, error)
+	parseInfixExpression  func(*Parser, ast.Expression) (ast.Expression, error)
 )
 
-func parseIdentifier(p *Parser) ast.Expression {
-	return &expression.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+func parseIdentifier(p *Parser) (ast.Expression, error) {
+	return &expression.Identifier{Token: p.curToken, Value: p.curToken.Literal}, nil
 }
