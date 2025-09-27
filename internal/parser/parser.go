@@ -111,7 +111,7 @@ func (p *Parser) parseExpression() ast.Expression {
 		return nil
 	}
 
-	leftExp := parsePrefixExpression()
+	leftExp := parsePrefixExpression(p)
 
 	return leftExp
 }
@@ -129,10 +129,6 @@ func (p *Parser) registerParsePrefixFn(tokenType token.TokenType, fn parsePrefix
 	p.parsePrefixFns[tokenType] = fn
 }
 
-func (p *Parser) parseIdentifier() ast.Expression {
-	return &expression.Identifier{Token: p.curToken, Value: p.curToken.Literal}
-}
-
 func (p *Parser) registerParseInfixFn(tokenType token.TokenType, fn parseInfixExpression) {
 	p.parseInfixFns[tokenType] = fn
 }
@@ -145,7 +141,7 @@ func New(tks chan token.Token) *Parser {
 		parseInfixFns:  map[token.TokenType]parseInfixExpression{},
 	}
 
-	p.registerParsePrefixFn(token.Ident, p.parseIdentifier)
+	p.registerParsePrefixFn(token.Ident, parseIdentifier)
 
 	p.nextToken()
 	p.nextToken()
