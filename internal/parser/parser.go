@@ -10,10 +10,12 @@ import (
 )
 
 type Parser struct {
-	tokens    chan token.Token
-	curToken  token.Token
-	peekToken token.Token
-	errors    []string
+	tokens         chan token.Token
+	curToken       token.Token
+	peekToken      token.Token
+	parsePrefixFns map[token.TokenType]parsePrefixExpression
+	parseInfixFns  map[token.TokenType]parseInfixExpression
+	errors         []string
 }
 
 func (p *Parser) ParseProgram() *ast.Program {
@@ -22,6 +24,7 @@ func (p *Parser) ParseProgram() *ast.Program {
 
 	for p.curToken.Type != token.EOF {
 		stmt := p.parseStatement()
+		// this is required
 		if stmt != nil {
 			program.Statements = append(program.Statements, stmt)
 		}
@@ -42,7 +45,7 @@ func (p *Parser) parseStatement() ast.Statement {
 	case token.Return:
 		return p.parseReturnStatement()
 	default:
-		return nil
+		return p.parseExpressionStatement()
 	}
 }
 
@@ -50,7 +53,7 @@ func (p *Parser) parseLetStatement() *statement.Let {
 	stmt := &statement.Let{Token: p.curToken}
 
 	if p.peekToken.Type != token.Ident {
-		p.appendError(token.Ident)
+		p.appendError(fmt.Sprintf("expected next token to be %s, got %s", token.Ident, p.peekToken.Type))
 		return nil
 	}
 
@@ -59,7 +62,7 @@ func (p *Parser) parseLetStatement() *statement.Let {
 	stmt.Name = &expression.Identifier{Token: p.curToken, Value: p.curToken.Literal}
 
 	if p.peekToken.Type != token.Assign {
-		p.appendError(token.Assign)
+		p.appendError(fmt.Sprintf("expected next token to be %s, got %s", token.Assign, p.peekToken.Type))
 		return nil
 	}
 
@@ -88,8 +91,32 @@ func (p *Parser) parseReturnStatement() *statement.Return {
 	return stmt
 }
 
-func (p *Parser) appendError(t token.TokenType) {
-	msg := fmt.Sprintf("expected next token to be %s, got %s", t, p.peekToken.Type)
+func (p *Parser) parseExpressionStatement() *statement.Expression {
+	stmt := &statement.Expression{Token: p.curToken}
+
+	stmt.Expression = p.parseExpression()
+
+	if p.peekToken.Type == token.Semicolon {
+		p.nextToken()
+	}
+
+	return stmt
+}
+
+func (p *Parser) parseExpression() ast.Expression {
+	parsePrefixExpression := p.parsePrefixFns[p.curToken.Type]
+
+	if parsePrefixExpression == nil {
+		p.appendError(fmt.Sprintf("no parse prefix function for %s found", p.curToken.Type))
+		return nil
+	}
+
+	leftExp := parsePrefixExpression()
+
+	return leftExp
+}
+
+func (p *Parser) appendError(msg string) {
 	p.errors = append(p.errors, msg)
 }
 
@@ -98,11 +125,27 @@ func (p *Parser) nextToken() {
 	p.peekToken = <-p.tokens
 }
 
+func (p *Parser) registerParsePrefixFn(tokenType token.TokenType, fn parsePrefixExpression) {
+	p.parsePrefixFns[tokenType] = fn
+}
+
+func (p *Parser) parseIdentifier() ast.Expression {
+	return &expression.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+}
+
+func (p *Parser) registerParseInfixFn(tokenType token.TokenType, fn parseInfixExpression) {
+	p.parseInfixFns[tokenType] = fn
+}
+
 func New(tks chan token.Token) *Parser {
 	p := &Parser{
-		tokens: tks,
-		errors: []string{},
+		tokens:         tks,
+		errors:         []string{},
+		parsePrefixFns: map[token.TokenType]parsePrefixExpression{},
+		parseInfixFns:  map[token.TokenType]parseInfixExpression{},
 	}
+
+	p.registerParsePrefixFn(token.Ident, p.parseIdentifier)
 
 	p.nextToken()
 	p.nextToken()
