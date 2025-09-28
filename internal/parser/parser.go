@@ -118,7 +118,9 @@ func (p *Parser) parseExpression() (ast.Expression, error) {
 
 	leftExp, err := parsePrefixExpression(p)
 	if err != nil {
-		return nil, err
+		errDetail := fmt.Sprintf("failed to parse prefix expression literal %q", p.curToken.Literal)
+		p.appendError(fmt.Sprintf("%s: %v", errDetail, err))
+		return nil, fmt.Errorf("%s: %w", errDetail, err)
 	}
 
 	return leftExp, nil
@@ -150,6 +152,7 @@ func New(tks chan token.Token) *Parser {
 	}
 
 	p.registerParsePrefixFn(token.Ident, parseIdentifier)
+	p.registerParsePrefixFn(token.Int, parseInteger)
 
 	p.nextToken()
 	p.nextToken()
