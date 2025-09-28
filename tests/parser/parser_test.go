@@ -59,14 +59,11 @@ let 838383;
 			expectErr: true,
 			testErrsFn: func(t *testing.T, errors []string) {
 				t.Logf("errors %+v", errors)
-				require.Equal(t, 7, len(errors))
+				require.Equal(t, 4, len(errors))
 				require.Equal(t, "expected next token to be =, got INT", errors[0])
-				require.Equal(t, "no parse prefix function for INT found", errors[1])
-				require.Equal(t, "expected next token to be IDENT, got =", errors[2])
-				require.Equal(t, "no parse prefix function for = found", errors[3])
-				require.Equal(t, "no parse prefix function for INT found", errors[4])
-				require.Equal(t, "expected next token to be IDENT, got INT", errors[5])
-				require.Equal(t, "no parse prefix function for INT found", errors[6])
+				require.Equal(t, "expected next token to be IDENT, got =", errors[1])
+				require.Equal(t, "no parse prefix function for = found", errors[2])
+				require.Equal(t, "expected next token to be IDENT, got INT", errors[3])
 			},
 		},
 		{
@@ -79,6 +76,21 @@ let 838383;
 				ident, ok := stmt.Expression.(*expression.Identifier)
 				require.True(t, ok)
 				require.Equal(t, "foobar", ident.Value)
+				require.Equal(t, "foobar", ident.TokenLiteral())
+			},
+			expectErr: false,
+		},
+		{
+			name:  "integer expression",
+			input: `5;`,
+			testFn: func(t *testing.T, program *ast.Program) {
+				require.Equal(t, 1, len(program.Statements))
+				stmt, ok := program.Statements[0].(*statement.Expression)
+				require.True(t, ok)
+				integer, ok := stmt.Expression.(*expression.Integer)
+				require.True(t, ok)
+				require.Equal(t, int64(5), integer.Value)
+				require.Equal(t, "5", integer.TokenLiteral())
 			},
 			expectErr: false,
 		},
