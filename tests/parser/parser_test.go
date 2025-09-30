@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -10,6 +11,11 @@ import (
 	"github.com/w-h-a/interpreter/internal/parser/ast/expression"
 	"github.com/w-h-a/interpreter/internal/parser/ast/statement"
 )
+
+type expectedPrefixOperatorExpression struct {
+	operator string
+	right    any
+}
 
 func TestParseProgram(t *testing.T) {
 	testCases := []struct {
@@ -60,10 +66,10 @@ let 838383;
 			testErrsFn: func(t *testing.T, errors []string) {
 				t.Logf("errors %+v", errors)
 				require.Equal(t, 4, len(errors))
-				require.Equal(t, "expected next token to be =, got INT", errors[0])
-				require.Equal(t, "expected next token to be IDENT, got =", errors[1])
-				require.Equal(t, "no parse prefix function for = found", errors[2])
-				require.Equal(t, "expected next token to be IDENT, got INT", errors[3])
+				testParseErrors(t, "expected next token to be =, got INT", errors[0])
+				testParseErrors(t, "expected next token to be IDENT, got =", errors[1])
+				testParseErrors(t, "no parse prefix function for = found", errors[2])
+				testParseErrors(t, "expected next token to be IDENT, got INT", errors[3])
 			},
 		},
 		{
@@ -71,12 +77,7 @@ let 838383;
 			input: `foobar;`,
 			testFn: func(t *testing.T, program *ast.Program) {
 				require.Equal(t, 1, len(program.Statements))
-				stmt, ok := program.Statements[0].(*statement.Expression)
-				require.True(t, ok)
-				ident, ok := stmt.Expression.(*expression.Identifier)
-				require.True(t, ok)
-				require.Equal(t, "foobar", ident.Value)
-				require.Equal(t, "foobar", ident.TokenLiteral())
+				testExpressionStatement(t, program.Statements[0], "foobar")
 			},
 			expectErr: false,
 		},
@@ -85,12 +86,19 @@ let 838383;
 			input: `5;`,
 			testFn: func(t *testing.T, program *ast.Program) {
 				require.Equal(t, 1, len(program.Statements))
-				stmt, ok := program.Statements[0].(*statement.Expression)
-				require.True(t, ok)
-				integer, ok := stmt.Expression.(*expression.Integer)
-				require.True(t, ok)
-				require.Equal(t, int64(5), integer.Value)
-				require.Equal(t, "5", integer.TokenLiteral())
+				testExpressionStatement(t, program.Statements[0], 5)
+			},
+			expectErr: false,
+		},
+		{
+			name: "prefix operator expressions",
+			input: `
+!5;
+-15;
+`,
+			testFn: func(t *testing.T, program *ast.Program) {
+				testExpressionStatement(t, program.Statements[0], expectedPrefixOperatorExpression{operator: "!", right: 5})
+				testExpressionStatement(t, program.Statements[1], expectedPrefixOperatorExpression{operator: "-", right: 15})
 			},
 			expectErr: false,
 		},
@@ -127,4 +135,37 @@ func testReturnStatement(t *testing.T, s ast.Statement) {
 	require.Equal(t, "return", s.TokenLiteral())
 	_, ok := s.(*statement.Return)
 	require.True(t, ok)
+}
+
+func testExpressionStatement(t *testing.T, s ast.Statement, expected any) {
+	expStmt, ok := s.(*statement.Expression)
+	require.True(t, ok)
+
+	testExpression(t, expStmt.Expression, expected)
+}
+
+func testExpression(t *testing.T, e ast.Expression, expected any) {
+	switch v := expected.(type) {
+	case int:
+		integer, ok := e.(*expression.Integer)
+		require.True(t, ok)
+		require.Equal(t, int64(v), integer.Value)
+		require.Equal(t, fmt.Sprintf("%d", v), integer.TokenLiteral())
+	case string:
+		identifier, ok := e.(*expression.Identifier)
+		require.True(t, ok)
+		require.Equal(t, v, identifier.Value)
+		require.Equal(t, v, identifier.TokenLiteral())
+	case expectedPrefixOperatorExpression:
+		prefixOperator, ok := e.(*expression.PrefixOperator)
+		require.True(t, ok)
+		require.Equal(t, v.operator, prefixOperator.Operator)
+		testExpression(t, prefixOperator.Right, v.right)
+	default:
+		t.Errorf("Expression assertion type not handled. got=%T", expected)
+	}
+}
+
+func testParseErrors(t *testing.T, want string, got string) {
+	require.Equal(t, want, got)
 }

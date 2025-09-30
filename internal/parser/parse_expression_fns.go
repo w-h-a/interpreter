@@ -24,3 +24,21 @@ func parseInteger(p *Parser) (ast.Expression, error) {
 
 	return &expression.Integer{Token: p.curToken, Value: value}, nil
 }
+
+func parsePrefixOperator(p *Parser) (ast.Expression, error) {
+	expression := &expression.PrefixOperator{
+		Token:    p.curToken,
+		Operator: p.curToken.Literal,
+	}
+
+	p.nextToken()
+
+	var err error
+
+	expression.Right, err = p.parseExpression()
+	if err != nil {
+		return nil, err
+	}
+
+	return expression, nil
+}
