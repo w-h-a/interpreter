@@ -153,6 +153,8 @@ func New(tks chan token.Token) *Parser {
 
 	p.registerParsePrefixFn(token.Ident, parseIdentifier)
 	p.registerParsePrefixFn(token.Int, parseInteger)
+	p.registerParsePrefixFn(token.Bang, parsePrefixOperator)
+	p.registerParsePrefixFn(token.Minus, parsePrefixOperator)
 
 	p.nextToken()
 	p.nextToken()
