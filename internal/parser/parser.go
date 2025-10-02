@@ -3,6 +3,7 @@ package parser
 import (
 	"errors"
 	"fmt"
+	"strconv"
 
 	"github.com/w-h-a/interpreter/internal/parser/ast"
 	"github.com/w-h-a/interpreter/internal/parser/ast/expression"
@@ -14,8 +15,8 @@ type Parser struct {
 	tokens         chan token.Token
 	curToken       token.Token
 	peekToken      token.Token
-	parsePrefixFns map[token.TokenType]parsePrefixExpression
-	parseInfixFns  map[token.TokenType]parseInfixExpression
+	parsePrefixFns map[token.TokenType]parsePrefixFn
+	parseInfixFns  map[token.TokenType]parseInfixFn
 	errors         []string
 }
 
@@ -98,7 +99,7 @@ func (p *Parser) parseExpressionStatement() (*statement.Expression, error) {
 
 	var err error
 
-	stmt.Expression, err = p.parseExpression()
+	stmt.Expression, err = p.parseExpression(LOWEST)
 
 	if p.peekToken.Type == token.Semicolon {
 		p.nextToken()
@@ -107,23 +108,78 @@ func (p *Parser) parseExpressionStatement() (*statement.Expression, error) {
 	return stmt, err
 }
 
-func (p *Parser) parseExpression() (ast.Expression, error) {
-	parsePrefixExpression := p.parsePrefixFns[p.curToken.Type]
+func (p *Parser) parseExpression(precedence int) (ast.Expression, error) {
+	var exp ast.Expression
+	var err error
 
-	if parsePrefixExpression == nil {
-		errDetail := fmt.Sprintf("no parse prefix function for %s found", p.curToken.Type)
-		p.appendError(errDetail)
-		return nil, errors.New(errDetail)
+	switch p.curToken.Type {
+	case token.Ident:
+		exp, err = p.parseIdentifier()
+	case token.Int:
+		exp, err = p.parseInteger()
+	default:
+		parsePrefixExpression := p.parsePrefixFns[p.curToken.Type]
+
+		if parsePrefixExpression == nil {
+			errDetail := fmt.Sprintf("no parse prefix function for %s found", p.curToken.Type)
+			p.appendError(errDetail)
+			return nil, errors.New(errDetail)
+		}
+
+		exp, err = parsePrefixExpression(p)
 	}
 
-	leftExp, err := parsePrefixExpression(p)
 	if err != nil {
-		errDetail := fmt.Sprintf("failed to parse prefix expression literal %q", p.curToken.Literal)
+		errDetail := fmt.Sprintf("failed to parse expression literal %q", p.curToken.Literal)
 		p.appendError(fmt.Sprintf("%s: %v", errDetail, err))
 		return nil, fmt.Errorf("%s: %w", errDetail, err)
 	}
 
-	return leftExp, nil
+	for p.peekToken.Type != token.Semicolon && precedence < p.peekPrecedence() {
+		parseInfixExpression := p.parseInfixFns[p.peekToken.Type]
+
+		if parseInfixExpression == nil {
+			return exp, nil
+		}
+
+		p.nextToken()
+
+		exp, err = parseInfixExpression(p, exp)
+		if err != nil {
+			errDetail := fmt.Sprintf("failed to parse infix expression literal %q", p.curToken.Literal)
+			p.appendError(fmt.Sprintf("%s: %v", errDetail, err))
+			return nil, fmt.Errorf("%s: %w", errDetail, err)
+		}
+	}
+
+	return exp, nil
+}
+
+func (p *Parser) parseIdentifier() (ast.Expression, error) {
+	return &expression.Identifier{Token: p.curToken, Value: p.curToken.Literal}, nil
+}
+
+func (p *Parser) parseInteger() (ast.Expression, error) {
+	value, err := strconv.ParseInt(p.curToken.Literal, 0, 64)
+	if err != nil {
+		return nil, err
+	}
+
+	return &expression.Integer{Token: p.curToken, Value: value}, nil
+}
+
+func (p *Parser) peekPrecedence() int {
+	if prec, ok := precedences[p.peekToken.Type]; ok {
+		return prec
+	}
+	return LOWEST
+}
+
+func (p *Parser) currentPrecendence() int {
+	if prec, ok := precedences[p.curToken.Type]; ok {
+		return prec
+	}
+	return LOWEST
 }
 
 func (p *Parser) appendError(msg string) {
@@ -135,11 +191,11 @@ func (p *Parser) nextToken() {
 	p.peekToken = <-p.tokens
 }
 
-func (p *Parser) registerParsePrefixFn(tokenType token.TokenType, fn parsePrefixExpression) {
+func (p *Parser) registerParsePrefixFn(tokenType token.TokenType, fn parsePrefixFn) {
 	p.parsePrefixFns[tokenType] = fn
 }
 
-func (p *Parser) registerParseInfixFn(tokenType token.TokenType, fn parseInfixExpression) {
+func (p *Parser) registerParseInfixFn(tokenType token.TokenType, fn parseInfixFn) {
 	p.parseInfixFns[tokenType] = fn
 }
 
@@ -147,14 +203,21 @@ func New(tks chan token.Token) *Parser {
 	p := &Parser{
 		tokens:         tks,
 		errors:         []string{},
-		parsePrefixFns: map[token.TokenType]parsePrefixExpression{},
-		parseInfixFns:  map[token.TokenType]parseInfixExpression{},
+		parsePrefixFns: map[token.TokenType]parsePrefixFn{},
+		parseInfixFns:  map[token.TokenType]parseInfixFn{},
 	}
 
-	p.registerParsePrefixFn(token.Ident, parseIdentifier)
-	p.registerParsePrefixFn(token.Int, parseInteger)
 	p.registerParsePrefixFn(token.Bang, parsePrefixOperator)
 	p.registerParsePrefixFn(token.Minus, parsePrefixOperator)
+
+	p.registerParseInfixFn(token.Identical, parseInfixOperator)
+	p.registerParseInfixFn(token.NotIdentical, parseInfixOperator)
+	p.registerParseInfixFn(token.LessThan, parseInfixOperator)
+	p.registerParseInfixFn(token.GreaterThan, parseInfixOperator)
+	p.registerParseInfixFn(token.Plus, parseInfixOperator)
+	p.registerParseInfixFn(token.Minus, parseInfixOperator)
+	p.registerParseInfixFn(token.Asterisk, parseInfixOperator)
+	p.registerParseInfixFn(token.Slash, parseInfixOperator)
 
 	p.nextToken()
 	p.nextToken()
