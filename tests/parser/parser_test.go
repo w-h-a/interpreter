@@ -17,6 +17,12 @@ type expectedPrefixOperatorExpression struct {
 	right    any
 }
 
+type expectedInfixOperatorExpression struct {
+	operator string
+	left     any
+	right    any
+}
+
 func TestParseProgram(t *testing.T) {
 	testCases := []struct {
 		name       string
@@ -97,8 +103,142 @@ let 838383;
 -15;
 `,
 			testFn: func(t *testing.T, program *ast.Program) {
+				require.Equal(t, 2, len(program.Statements))
 				testExpressionStatement(t, program.Statements[0], expectedPrefixOperatorExpression{operator: "!", right: 5})
 				testExpressionStatement(t, program.Statements[1], expectedPrefixOperatorExpression{operator: "-", right: 15})
+			},
+			expectErr: false,
+		},
+		{
+			name: "infix operator expressions",
+			input: `
+5 + 5;
+5 - 5;
+5 * 5;
+5 / 5;
+5 > 5;
+5 < 5;
+5 == 5;
+5 != 5;
+`,
+			testFn: func(t *testing.T, program *ast.Program) {
+				require.Equal(t, 8, len(program.Statements))
+				testExpressionStatement(t, program.Statements[0], expectedInfixOperatorExpression{operator: "+", left: 5, right: 5})
+				testExpressionStatement(t, program.Statements[1], expectedInfixOperatorExpression{operator: "-", left: 5, right: 5})
+				testExpressionStatement(t, program.Statements[2], expectedInfixOperatorExpression{operator: "*", left: 5, right: 5})
+				testExpressionStatement(t, program.Statements[3], expectedInfixOperatorExpression{operator: "/", left: 5, right: 5})
+				testExpressionStatement(t, program.Statements[4], expectedInfixOperatorExpression{operator: ">", left: 5, right: 5})
+				testExpressionStatement(t, program.Statements[5], expectedInfixOperatorExpression{operator: "<", left: 5, right: 5})
+				testExpressionStatement(t, program.Statements[6], expectedInfixOperatorExpression{operator: "==", left: 5, right: 5})
+				testExpressionStatement(t, program.Statements[7], expectedInfixOperatorExpression{operator: "!=", left: 5, right: 5})
+			},
+			expectErr: false,
+		},
+		{
+			name:  "program string 1",
+			input: `-a * b`,
+			testFn: func(t *testing.T, program *ast.Program) {
+				got := program.String()
+				require.Equal(t, "((-a) * b)", got)
+			},
+			expectErr: false,
+		},
+		{
+			name:  "program string 2",
+			input: `!-a`,
+			testFn: func(t *testing.T, program *ast.Program) {
+				got := program.String()
+				require.Equal(t, "(!(-a))", got)
+			},
+			expectErr: false,
+		},
+		{
+			name:  "program string 3",
+			input: `a + b + c`,
+			testFn: func(t *testing.T, program *ast.Program) {
+				got := program.String()
+				require.Equal(t, "((a + b) + c)", got)
+			},
+			expectErr: false,
+		},
+		{
+			name:  "program string 4",
+			input: `a + b - c`,
+			testFn: func(t *testing.T, program *ast.Program) {
+				got := program.String()
+				require.Equal(t, "((a + b) - c)", got)
+			},
+			expectErr: false,
+		},
+		{
+			name:  "program string 5",
+			input: `a * b * c`,
+			testFn: func(t *testing.T, program *ast.Program) {
+				got := program.String()
+				require.Equal(t, "((a * b) * c)", got)
+			},
+			expectErr: false,
+		},
+		{
+			name:  "program string 6",
+			input: `a * b / c`,
+			testFn: func(t *testing.T, program *ast.Program) {
+				got := program.String()
+				require.Equal(t, "((a * b) / c)", got)
+			},
+			expectErr: false,
+		},
+		{
+			name:  "program string 7",
+			input: `a + b / c`,
+			testFn: func(t *testing.T, program *ast.Program) {
+				got := program.String()
+				require.Equal(t, "(a + (b / c))", got)
+			},
+			expectErr: false,
+		},
+		{
+			name:  "program string 8",
+			input: `a + b * c + d / e - f`,
+			testFn: func(t *testing.T, program *ast.Program) {
+				got := program.String()
+				require.Equal(t, "(((a + (b * c)) + (d / e)) - f)", got)
+			},
+			expectErr: false,
+		},
+		{
+			name:  "program string 9",
+			input: `3 + 4; -5 * 5`,
+			testFn: func(t *testing.T, program *ast.Program) {
+				got := program.String()
+				require.Equal(t, "(3 + 4)((-5) * 5)", got)
+			},
+			expectErr: false,
+		},
+		{
+			name:  "program string 10",
+			input: `5 > 4 == 3 < 4`,
+			testFn: func(t *testing.T, program *ast.Program) {
+				got := program.String()
+				require.Equal(t, "((5 > 4) == (3 < 4))", got)
+			},
+			expectErr: false,
+		},
+		{
+			name:  "program string 11",
+			input: `5 < 4 != 3 > 4`,
+			testFn: func(t *testing.T, program *ast.Program) {
+				got := program.String()
+				require.Equal(t, "((5 < 4) != (3 > 4))", got)
+			},
+			expectErr: false,
+		},
+		{
+			name:  "program string 12",
+			input: `3 + 4 * 5 == 3 * 1 + 4 * 5`,
+			testFn: func(t *testing.T, program *ast.Program) {
+				got := program.String()
+				require.Equal(t, "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))", got)
 			},
 			expectErr: false,
 		},
@@ -161,6 +301,12 @@ func testExpression(t *testing.T, e ast.Expression, expected any) {
 		require.True(t, ok)
 		require.Equal(t, v.operator, prefixOperator.Operator)
 		testExpression(t, prefixOperator.Right, v.right)
+	case expectedInfixOperatorExpression:
+		infixOperator, ok := e.(*expression.InfixOperator)
+		require.True(t, ok)
+		require.Equal(t, v.operator, infixOperator.Operator)
+		testExpression(t, infixOperator.Left, v.left)
+		testExpression(t, infixOperator.Right, v.right)
 	default:
 		t.Errorf("Expression assertion type not handled. got=%T", expected)
 	}
