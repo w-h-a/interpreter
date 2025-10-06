@@ -117,6 +117,8 @@ func (p *Parser) parseExpression(precedence int) (ast.Expression, error) {
 		exp, err = p.parseIdentifier()
 	case token.Int:
 		exp, err = p.parseInteger()
+	case token.True, token.False:
+		exp, err = p.parseBoolean()
 	default:
 		parsePrefixExpression := p.parsePrefixFns[p.curToken.Type]
 
@@ -166,6 +168,10 @@ func (p *Parser) parseInteger() (ast.Expression, error) {
 	}
 
 	return &expression.Integer{Token: p.curToken, Value: value}, nil
+}
+
+func (p *Parser) parseBoolean() (ast.Expression, error) {
+	return &expression.Boolean{Token: p.curToken, Value: p.curToken.Type == token.True}, nil
 }
 
 func (p *Parser) peekPrecedence() int {
