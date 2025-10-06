@@ -97,15 +97,32 @@ let 838383;
 			expectErr: false,
 		},
 		{
+			name: "boolean expression",
+			input: `
+true;
+false;
+`,
+			testFn: func(t *testing.T, program *ast.Program) {
+				require.Equal(t, 2, len(program.Statements))
+				testExpressionStatement(t, program.Statements[0], true)
+				testExpressionStatement(t, program.Statements[1], false)
+			},
+			expectErr: false,
+		},
+		{
 			name: "prefix operator expressions",
 			input: `
 !5;
 -15;
+!true;
+!false;
 `,
 			testFn: func(t *testing.T, program *ast.Program) {
-				require.Equal(t, 2, len(program.Statements))
+				require.Equal(t, 4, len(program.Statements))
 				testExpressionStatement(t, program.Statements[0], expectedPrefixOperatorExpression{operator: "!", right: 5})
 				testExpressionStatement(t, program.Statements[1], expectedPrefixOperatorExpression{operator: "-", right: 15})
+				testExpressionStatement(t, program.Statements[2], expectedPrefixOperatorExpression{operator: "!", right: true})
+				testExpressionStatement(t, program.Statements[3], expectedPrefixOperatorExpression{operator: "!", right: false})
 			},
 			expectErr: false,
 		},
@@ -120,9 +137,12 @@ let 838383;
 5 < 5;
 5 == 5;
 5 != 5;
+true == true;
+true != false;
+false == false;
 `,
 			testFn: func(t *testing.T, program *ast.Program) {
-				require.Equal(t, 8, len(program.Statements))
+				require.Equal(t, 11, len(program.Statements))
 				testExpressionStatement(t, program.Statements[0], expectedInfixOperatorExpression{operator: "+", left: 5, right: 5})
 				testExpressionStatement(t, program.Statements[1], expectedInfixOperatorExpression{operator: "-", left: 5, right: 5})
 				testExpressionStatement(t, program.Statements[2], expectedInfixOperatorExpression{operator: "*", left: 5, right: 5})
@@ -131,6 +151,9 @@ let 838383;
 				testExpressionStatement(t, program.Statements[5], expectedInfixOperatorExpression{operator: "<", left: 5, right: 5})
 				testExpressionStatement(t, program.Statements[6], expectedInfixOperatorExpression{operator: "==", left: 5, right: 5})
 				testExpressionStatement(t, program.Statements[7], expectedInfixOperatorExpression{operator: "!=", left: 5, right: 5})
+				testExpressionStatement(t, program.Statements[8], expectedInfixOperatorExpression{operator: "==", left: true, right: true})
+				testExpressionStatement(t, program.Statements[9], expectedInfixOperatorExpression{operator: "!=", left: true, right: false})
+				testExpressionStatement(t, program.Statements[10], expectedInfixOperatorExpression{operator: "==", left: false, right: false})
 			},
 			expectErr: false,
 		},
@@ -242,6 +265,24 @@ let 838383;
 			},
 			expectErr: false,
 		},
+		{
+			name:  "program string 13",
+			input: `3 > 5 == false`,
+			testFn: func(t *testing.T, program *ast.Program) {
+				got := program.String()
+				require.Equal(t, "((3 > 5) == false)", got)
+			},
+			expectErr: false,
+		},
+		{
+			name:  "program string 14",
+			input: `3 < 5 == true`,
+			testFn: func(t *testing.T, program *ast.Program) {
+				got := program.String()
+				require.Equal(t, "((3 < 5) == true)", got)
+			},
+			expectErr: false,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -291,6 +332,11 @@ func testExpression(t *testing.T, e ast.Expression, expected any) {
 		require.True(t, ok)
 		require.Equal(t, int64(v), integer.Value)
 		require.Equal(t, fmt.Sprintf("%d", v), integer.TokenLiteral())
+	case bool:
+		boolean, ok := e.(*expression.Boolean)
+		require.True(t, ok)
+		require.Equal(t, v, boolean.Value)
+		require.Equal(t, fmt.Sprintf("%t", v), boolean.TokenLiteral())
 	case string:
 		identifier, ok := e.(*expression.Identifier)
 		require.True(t, ok)
