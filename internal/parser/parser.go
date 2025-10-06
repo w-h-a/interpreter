@@ -115,6 +115,8 @@ func (p *Parser) parseExpression(precedence int) (ast.Expression, error) {
 	switch p.curToken.Type {
 	case token.Ident:
 		exp, err = p.parseIdentifier()
+	case token.ParenLeft:
+		exp, err = p.parseGrouped()
 	case token.Int:
 		exp, err = p.parseInteger()
 	case token.True, token.False:
@@ -159,6 +161,24 @@ func (p *Parser) parseExpression(precedence int) (ast.Expression, error) {
 
 func (p *Parser) parseIdentifier() (ast.Expression, error) {
 	return &expression.Identifier{Token: p.curToken, Value: p.curToken.Literal}, nil
+}
+
+func (p *Parser) parseGrouped() (ast.Expression, error) {
+	p.nextToken()
+
+	exp, err := p.parseExpression(LOWEST)
+	if err != nil {
+		return nil, err
+	}
+
+	if p.peekToken.Type != token.ParenRight {
+		errDetail := fmt.Sprintf("expected next token to be %s, got %s", token.ParenRight, p.peekToken.Type)
+		return nil, errors.New(errDetail)
+	}
+
+	p.nextToken()
+
+	return exp, nil
 }
 
 func (p *Parser) parseInteger() (ast.Expression, error) {
