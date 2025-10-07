@@ -1,17 +1,17 @@
-package expression
+package infixoperator
 
 import (
 	"strings"
 
-	"github.com/w-h-a/interpreter/internal/parser/ast"
+	"github.com/w-h-a/interpreter/internal/parser/ast/expression"
 	"github.com/w-h-a/interpreter/internal/token"
 )
 
 type InfixOperator struct {
 	Token    token.Token
 	Operator string
-	Left     ast.Expression
-	Right    ast.Expression
+	Left     expression.Expression
+	Right    expression.Expression
 }
 
 func (e *InfixOperator) TokenLiteral() string {
