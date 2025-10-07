@@ -1,4 +1,4 @@
-package expression
+package identifier
 
 import (
 	"github.com/w-h-a/interpreter/internal/token"

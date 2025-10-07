@@ -1,13 +1,13 @@
-package statement
+package expressionstatement
 
 import (
-	"github.com/w-h-a/interpreter/internal/parser/ast"
+	"github.com/w-h-a/interpreter/internal/parser/ast/expression"
 	"github.com/w-h-a/interpreter/internal/token"
 )
 
 type Expression struct {
 	Token      token.Token
-	Expression ast.Expression
+	Expression expression.Expression
 }
 
 func (s *Expression) TokenLiteral() string {

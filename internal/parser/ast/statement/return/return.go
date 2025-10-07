@@ -1,15 +1,15 @@
-package statement
+package returnstatement
 
 import (
 	"strings"
 
-	"github.com/w-h-a/interpreter/internal/parser/ast"
+	"github.com/w-h-a/interpreter/internal/parser/ast/expression"
 	"github.com/w-h-a/interpreter/internal/token"
 )
 
 type Return struct {
 	Token token.Token
-	Value ast.Expression
+	Value expression.Expression
 }
 
 func (s *Return) TokenLiteral() string {

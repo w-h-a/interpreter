@@ -1,17 +1,18 @@
 package parser
 
 import (
-	"github.com/w-h-a/interpreter/internal/parser/ast"
 	"github.com/w-h-a/interpreter/internal/parser/ast/expression"
+	infixoperator "github.com/w-h-a/interpreter/internal/parser/ast/expression/infix_operator"
+	prefixoperator "github.com/w-h-a/interpreter/internal/parser/ast/expression/prefix_operator"
 )
 
 type (
-	parsePrefixFn func(*Parser) (ast.Expression, error)
-	parseInfixFn  func(*Parser, ast.Expression) (ast.Expression, error)
+	parsePrefixFn func(*Parser) (expression.Expression, error)
+	parseInfixFn  func(*Parser, expression.Expression) (expression.Expression, error)
 )
 
-func parsePrefixOperator(p *Parser) (ast.Expression, error) {
-	expression := &expression.PrefixOperator{
+func parsePrefixOperator(p *Parser) (expression.Expression, error) {
+	expression := &prefixoperator.PrefixOperator{
 		Token:    p.curToken,
 		Operator: p.curToken.Literal,
 	}
@@ -28,8 +29,8 @@ func parsePrefixOperator(p *Parser) (ast.Expression, error) {
 	return expression, nil
 }
 
-func parseInfixOperator(p *Parser, left ast.Expression) (ast.Expression, error) {
-	expression := &expression.InfixOperator{
+func parseInfixOperator(p *Parser, left expression.Expression) (expression.Expression, error) {
+	expression := &infixoperator.InfixOperator{
 		Token:    p.curToken,
 		Operator: p.curToken.Literal,
 		Left:     left,

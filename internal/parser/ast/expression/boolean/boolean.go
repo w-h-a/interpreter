@@ -1,4 +1,4 @@
-package expression
+package boolean
 
 import "github.com/w-h-a/interpreter/internal/token"
 

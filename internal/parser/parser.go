@@ -5,9 +5,14 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/w-h-a/interpreter/internal/parser/ast"
 	"github.com/w-h-a/interpreter/internal/parser/ast/expression"
+	"github.com/w-h-a/interpreter/internal/parser/ast/expression/boolean"
+	"github.com/w-h-a/interpreter/internal/parser/ast/expression/identifier"
+	"github.com/w-h-a/interpreter/internal/parser/ast/expression/integer"
 	"github.com/w-h-a/interpreter/internal/parser/ast/statement"
+	expressionstatement "github.com/w-h-a/interpreter/internal/parser/ast/statement/expression"
+	"github.com/w-h-a/interpreter/internal/parser/ast/statement/let"
+	returnstatement "github.com/w-h-a/interpreter/internal/parser/ast/statement/return"
 	"github.com/w-h-a/interpreter/internal/token"
 )
 
@@ -20,9 +25,9 @@ type Parser struct {
 	errors         []string
 }
 
-func (p *Parser) ParseProgram() *ast.Program {
-	program := &ast.Program{}
-	program.Statements = []ast.Statement{}
+func (p *Parser) ParseProgram() *statement.Program {
+	program := &statement.Program{}
+	program.Statements = []statement.Statement{}
 
 	for p.curToken.Type != token.EOF {
 		stmt, err := p.parseStatement()
@@ -39,7 +44,7 @@ func (p *Parser) Errors() []string {
 	return p.errors
 }
 
-func (p *Parser) parseStatement() (ast.Statement, error) {
+func (p *Parser) parseStatement() (statement.Statement, error) {
 	switch p.curToken.Type {
 	case token.Let:
 		return p.parseLetStatement()
@@ -50,8 +55,8 @@ func (p *Parser) parseStatement() (ast.Statement, error) {
 	}
 }
 
-func (p *Parser) parseLetStatement() (*statement.Let, error) {
-	stmt := &statement.Let{Token: p.curToken}
+func (p *Parser) parseLetStatement() (*let.Let, error) {
+	stmt := &let.Let{Token: p.curToken}
 
 	if p.peekToken.Type != token.Ident {
 		errDetail := fmt.Sprintf("expected next token to be %s, got %s", token.Ident, p.peekToken.Type)
@@ -61,7 +66,7 @@ func (p *Parser) parseLetStatement() (*statement.Let, error) {
 
 	p.nextToken()
 
-	stmt.Name = &expression.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+	stmt.Name = &identifier.Identifier{Token: p.curToken, Value: p.curToken.Literal}
 
 	if p.peekToken.Type != token.Assign {
 		errDetail := fmt.Sprintf("expected next token to be %s, got %s", token.Assign, p.peekToken.Type)
@@ -80,8 +85,8 @@ func (p *Parser) parseLetStatement() (*statement.Let, error) {
 	return stmt, nil
 }
 
-func (p *Parser) parseReturnStatement() (*statement.Return, error) {
-	stmt := &statement.Return{Token: p.curToken}
+func (p *Parser) parseReturnStatement() (*returnstatement.Return, error) {
+	stmt := &returnstatement.Return{Token: p.curToken}
 
 	p.nextToken()
 
@@ -94,8 +99,8 @@ func (p *Parser) parseReturnStatement() (*statement.Return, error) {
 	return stmt, nil
 }
 
-func (p *Parser) parseExpressionStatement() (*statement.Expression, error) {
-	stmt := &statement.Expression{Token: p.curToken}
+func (p *Parser) parseExpressionStatement() (*expressionstatement.Expression, error) {
+	stmt := &expressionstatement.Expression{Token: p.curToken}
 
 	var err error
 
@@ -108,8 +113,8 @@ func (p *Parser) parseExpressionStatement() (*statement.Expression, error) {
 	return stmt, err
 }
 
-func (p *Parser) parseExpression(precedence int) (ast.Expression, error) {
-	var exp ast.Expression
+func (p *Parser) parseExpression(precedence int) (expression.Expression, error) {
+	var exp expression.Expression
 	var err error
 
 	switch p.curToken.Type {
@@ -159,11 +164,11 @@ func (p *Parser) parseExpression(precedence int) (ast.Expression, error) {
 	return exp, nil
 }
 
-func (p *Parser) parseIdentifier() (ast.Expression, error) {
-	return &expression.Identifier{Token: p.curToken, Value: p.curToken.Literal}, nil
+func (p *Parser) parseIdentifier() (expression.Expression, error) {
+	return &identifier.Identifier{Token: p.curToken, Value: p.curToken.Literal}, nil
 }
 
-func (p *Parser) parseGrouped() (ast.Expression, error) {
+func (p *Parser) parseGrouped() (expression.Expression, error) {
 	p.nextToken()
 
 	exp, err := p.parseExpression(LOWEST)
@@ -181,17 +186,17 @@ func (p *Parser) parseGrouped() (ast.Expression, error) {
 	return exp, nil
 }
 
-func (p *Parser) parseInteger() (ast.Expression, error) {
+func (p *Parser) parseInteger() (expression.Expression, error) {
 	value, err := strconv.ParseInt(p.curToken.Literal, 0, 64)
 	if err != nil {
 		return nil, err
 	}
 
-	return &expression.Integer{Token: p.curToken, Value: value}, nil
+	return &integer.Integer{Token: p.curToken, Value: value}, nil
 }
 
-func (p *Parser) parseBoolean() (ast.Expression, error) {
-	return &expression.Boolean{Token: p.curToken, Value: p.curToken.Type == token.True}, nil
+func (p *Parser) parseBoolean() (expression.Expression, error) {
+	return &boolean.Boolean{Token: p.curToken, Value: p.curToken.Type == token.True}, nil
 }
 
 func (p *Parser) peekPrecedence() int {
