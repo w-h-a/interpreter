@@ -283,6 +283,51 @@ false == false;
 			},
 			expectErr: false,
 		},
+		{
+			name:  "program string 15",
+			input: `1 + (2 + 3) + 4`,
+			testFn: func(t *testing.T, program *ast.Program) {
+				got := program.String()
+				require.Equal(t, "((1 + (2 + 3)) + 4)", got)
+			},
+			expectErr: false,
+		},
+		{
+			name:  "program string 16",
+			input: `(5 + 5) * 2`,
+			testFn: func(t *testing.T, program *ast.Program) {
+				got := program.String()
+				require.Equal(t, "((5 + 5) * 2)", got)
+			},
+			expectErr: false,
+		},
+		{
+			name:  "program string 17",
+			input: `2 / (5 + 5)`,
+			testFn: func(t *testing.T, program *ast.Program) {
+				got := program.String()
+				require.Equal(t, "(2 / (5 + 5))", got)
+			},
+			expectErr: false,
+		},
+		{
+			name:  "program string 18",
+			input: `-(5 + 5)`,
+			testFn: func(t *testing.T, program *ast.Program) {
+				got := program.String()
+				require.Equal(t, "(-(5 + 5))", got)
+			},
+			expectErr: false,
+		},
+		{
+			name:  "program string 19",
+			input: `!(true == true)`,
+			testFn: func(t *testing.T, program *ast.Program) {
+				got := program.String()
+				require.Equal(t, "(!(true == true))", got)
+			},
+			expectErr: false,
+		},
 	}
 
 	for _, tc := range testCases {
