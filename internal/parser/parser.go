@@ -8,8 +8,10 @@ import (
 	"github.com/w-h-a/interpreter/internal/parser/ast/expression"
 	"github.com/w-h-a/interpreter/internal/parser/ast/expression/boolean"
 	"github.com/w-h-a/interpreter/internal/parser/ast/expression/identifier"
+	ifexpression "github.com/w-h-a/interpreter/internal/parser/ast/expression/if"
 	"github.com/w-h-a/interpreter/internal/parser/ast/expression/integer"
 	"github.com/w-h-a/interpreter/internal/parser/ast/statement"
+	"github.com/w-h-a/interpreter/internal/parser/ast/statement/block"
 	expressionstatement "github.com/w-h-a/interpreter/internal/parser/ast/statement/expression"
 	"github.com/w-h-a/interpreter/internal/parser/ast/statement/let"
 	returnstatement "github.com/w-h-a/interpreter/internal/parser/ast/statement/return"
@@ -99,6 +101,24 @@ func (p *Parser) parseReturnStatement() (*returnstatement.Return, error) {
 	return stmt, nil
 }
 
+func (p *Parser) parseBlockStatement() (*block.Block, error) {
+	stmt := &block.Block{Token: p.curToken}
+
+	stmt.Statements = []statement.Statement{}
+
+	p.nextToken() // consume '{'
+
+	for p.curToken.Type != token.BraceRight && p.curToken.Type != token.EOF {
+		s, err := p.parseStatement()
+		if err == nil {
+			stmt.Statements = append(stmt.Statements, s)
+		}
+		p.nextToken()
+	}
+
+	return stmt, nil
+}
+
 func (p *Parser) parseExpressionStatement() (*expressionstatement.Expression, error) {
 	stmt := &expressionstatement.Expression{Token: p.curToken}
 
@@ -119,13 +139,15 @@ func (p *Parser) parseExpression(precedence int) (expression.Expression, error) 
 
 	switch p.curToken.Type {
 	case token.Ident:
-		exp, err = p.parseIdentifier()
+		exp, err = p.parseIdentifierExpression()
 	case token.ParenLeft:
-		exp, err = p.parseGrouped()
+		exp, err = p.parseGroupedExpression()
+	case token.If:
+		exp, err = p.parseIfExpression()
 	case token.Int:
-		exp, err = p.parseInteger()
+		exp, err = p.parseIntegerExpression()
 	case token.True, token.False:
-		exp, err = p.parseBoolean()
+		exp, err = p.parseBooleanExpression()
 	default:
 		parsePrefixExpression := p.parsePrefixFns[p.curToken.Type]
 
@@ -164,11 +186,11 @@ func (p *Parser) parseExpression(precedence int) (expression.Expression, error) 
 	return exp, nil
 }
 
-func (p *Parser) parseIdentifier() (expression.Expression, error) {
+func (p *Parser) parseIdentifierExpression() (expression.Expression, error) {
 	return &identifier.Identifier{Token: p.curToken, Value: p.curToken.Literal}, nil
 }
 
-func (p *Parser) parseGrouped() (expression.Expression, error) {
+func (p *Parser) parseGroupedExpression() (expression.Expression, error) {
 	p.nextToken()
 
 	exp, err := p.parseExpression(LOWEST)
@@ -186,7 +208,58 @@ func (p *Parser) parseGrouped() (expression.Expression, error) {
 	return exp, nil
 }
 
-func (p *Parser) parseInteger() (expression.Expression, error) {
+func (p *Parser) parseIfExpression() (expression.Expression, error) {
+	exp := &ifexpression.If{Token: p.curToken}
+
+	if p.peekToken.Type != token.ParenLeft {
+		errDetail := fmt.Sprintf("expected next token to be %s, got %s", token.ParenLeft, p.peekToken.Type)
+		return nil, errors.New(errDetail)
+	}
+
+	p.nextToken() // move to '('
+
+	p.nextToken() // consume '(' to get ready to parse condition
+
+	var err error
+
+	exp.Condition, err = p.parseExpression(LOWEST)
+	if err != nil {
+		return nil, err
+	}
+
+	if p.peekToken.Type != token.ParenRight {
+		errDetail := fmt.Sprintf("expected next token to be %s, got %s", token.ParenRight, p.peekToken.Type)
+		return nil, errors.New(errDetail)
+	}
+
+	p.nextToken() // move to ')'
+
+	if p.peekToken.Type != token.BraceLeft {
+		errDetail := fmt.Sprintf("expected next token to be %s, got %s", token.BraceLeft, p.peekToken.Type)
+		return nil, errors.New(errDetail)
+	}
+
+	p.nextToken() // move to '{'
+
+	exp.Consequence, _ = p.parseBlockStatement()
+
+	if p.peekToken.Type == token.Else {
+		p.nextToken() // move to 'else'
+
+		if p.peekToken.Type != token.BraceLeft {
+			errDetail := fmt.Sprintf("expected next token to be %s, got %s", token.BraceLeft, p.peekToken.Type)
+			return nil, errors.New(errDetail)
+		}
+
+		p.nextToken() // move to '{'
+
+		exp.Alternative, _ = p.parseBlockStatement()
+	}
+
+	return exp, nil
+}
+
+func (p *Parser) parseIntegerExpression() (expression.Expression, error) {
 	value, err := strconv.ParseInt(p.curToken.Literal, 0, 64)
 	if err != nil {
 		return nil, err
@@ -195,7 +268,7 @@ func (p *Parser) parseInteger() (expression.Expression, error) {
 	return &integer.Integer{Token: p.curToken, Value: value}, nil
 }
 
-func (p *Parser) parseBoolean() (expression.Expression, error) {
+func (p *Parser) parseBooleanExpression() (expression.Expression, error) {
 	return &boolean.Boolean{Token: p.curToken, Value: p.curToken.Type == token.True}, nil
 }
 
@@ -238,17 +311,17 @@ func New(tks chan token.Token) *Parser {
 		parseInfixFns:  map[token.TokenType]parseInfixFn{},
 	}
 
-	p.registerParsePrefixFn(token.Bang, parsePrefixOperator)
-	p.registerParsePrefixFn(token.Minus, parsePrefixOperator)
+	p.registerParsePrefixFn(token.Bang, parsePrefixOperatorExpression)
+	p.registerParsePrefixFn(token.Minus, parsePrefixOperatorExpression)
 
-	p.registerParseInfixFn(token.Identical, parseInfixOperator)
-	p.registerParseInfixFn(token.NotIdentical, parseInfixOperator)
-	p.registerParseInfixFn(token.LessThan, parseInfixOperator)
-	p.registerParseInfixFn(token.GreaterThan, parseInfixOperator)
-	p.registerParseInfixFn(token.Plus, parseInfixOperator)
-	p.registerParseInfixFn(token.Minus, parseInfixOperator)
-	p.registerParseInfixFn(token.Asterisk, parseInfixOperator)
-	p.registerParseInfixFn(token.Slash, parseInfixOperator)
+	p.registerParseInfixFn(token.Identical, parseInfixOperatorExpression)
+	p.registerParseInfixFn(token.NotIdentical, parseInfixOperatorExpression)
+	p.registerParseInfixFn(token.LessThan, parseInfixOperatorExpression)
+	p.registerParseInfixFn(token.GreaterThan, parseInfixOperatorExpression)
+	p.registerParseInfixFn(token.Plus, parseInfixOperatorExpression)
+	p.registerParseInfixFn(token.Minus, parseInfixOperatorExpression)
+	p.registerParseInfixFn(token.Asterisk, parseInfixOperatorExpression)
+	p.registerParseInfixFn(token.Slash, parseInfixOperatorExpression)
 
 	p.nextToken()
 	p.nextToken()

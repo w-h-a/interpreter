@@ -10,6 +10,7 @@ import (
 	"github.com/w-h-a/interpreter/internal/parser/ast/expression"
 	"github.com/w-h-a/interpreter/internal/parser/ast/expression/boolean"
 	"github.com/w-h-a/interpreter/internal/parser/ast/expression/identifier"
+	ifexpression "github.com/w-h-a/interpreter/internal/parser/ast/expression/if"
 	infixoperator "github.com/w-h-a/interpreter/internal/parser/ast/expression/infix_operator"
 	"github.com/w-h-a/interpreter/internal/parser/ast/expression/integer"
 	prefixoperator "github.com/w-h-a/interpreter/internal/parser/ast/expression/prefix_operator"
@@ -28,6 +29,12 @@ type expectedInfixOperatorExpression struct {
 	operator string
 	left     any
 	right    any
+}
+
+type expectedIfExpression struct {
+	condition      expectedInfixOperatorExpression
+	consequenceLen int
+	alternativeLen int
 }
 
 func TestParseProgram(t *testing.T) {
@@ -161,6 +168,27 @@ false == false;
 				testExpressionStatement(t, program.Statements[8], expectedInfixOperatorExpression{operator: "==", left: true, right: true})
 				testExpressionStatement(t, program.Statements[9], expectedInfixOperatorExpression{operator: "!=", left: true, right: false})
 				testExpressionStatement(t, program.Statements[10], expectedInfixOperatorExpression{operator: "==", left: false, right: false})
+			},
+			expectErr: false,
+		},
+		{
+			name: "if expressions",
+			input: `
+if (x < y) { x };
+if (x > y) { x } else { y };
+`,
+			testFn: func(t *testing.T, program *statement.Program) {
+				require.Equal(t, 2, len(program.Statements))
+				testExpressionStatement(t, program.Statements[0], expectedIfExpression{
+					condition:      expectedInfixOperatorExpression{operator: "<", left: "x", right: "y"},
+					consequenceLen: 1,
+					alternativeLen: 0,
+				})
+				testExpressionStatement(t, program.Statements[1], expectedIfExpression{
+					condition:      expectedInfixOperatorExpression{operator: ">", left: "x", right: "y"},
+					consequenceLen: 1,
+					alternativeLen: 1,
+				})
 			},
 			expectErr: false,
 		},
@@ -350,6 +378,7 @@ false == false;
 				return
 			}
 
+			t.Logf("ERRORS: %v", errors)
 			require.Equal(t, 0, len(errors))
 			tc.testFn(t, program)
 		})
@@ -405,6 +434,18 @@ func testExpression(t *testing.T, e expression.Expression, expected any) {
 		require.Equal(t, v.operator, infixOperator.Operator)
 		testExpression(t, infixOperator.Left, v.left)
 		testExpression(t, infixOperator.Right, v.right)
+	case expectedIfExpression:
+		ifExpression, ok := e.(*ifexpression.If)
+		require.True(t, ok)
+		testExpression(t, ifExpression.Condition, v.condition)
+		require.NotNil(t, ifExpression.Consequence)
+		require.Equal(t, v.consequenceLen, len(ifExpression.Consequence.Statements))
+		if v.alternativeLen > 0 {
+			require.NotNil(t, ifExpression.Alternative)
+			require.Equal(t, v.alternativeLen, len(ifExpression.Alternative.Statements))
+		} else {
+			require.Nil(t, ifExpression.Alternative)
+		}
 	default:
 		t.Errorf("Expression assertion type not handled. got=%T", expected)
 	}

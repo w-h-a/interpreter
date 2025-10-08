@@ -11,7 +11,7 @@ type (
 	parseInfixFn  func(*Parser, expression.Expression) (expression.Expression, error)
 )
 
-func parsePrefixOperator(p *Parser) (expression.Expression, error) {
+func parsePrefixOperatorExpression(p *Parser) (expression.Expression, error) {
 	expression := &prefixoperator.PrefixOperator{
 		Token:    p.curToken,
 		Operator: p.curToken.Literal,
@@ -29,7 +29,7 @@ func parsePrefixOperator(p *Parser) (expression.Expression, error) {
 	return expression, nil
 }
 
-func parseInfixOperator(p *Parser, left expression.Expression) (expression.Expression, error) {
+func parseInfixOperatorExpression(p *Parser, left expression.Expression) (expression.Expression, error) {
 	expression := &infixoperator.InfixOperator{
 		Token:    p.curToken,
 		Operator: p.curToken.Literal,
