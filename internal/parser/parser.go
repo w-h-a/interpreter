@@ -7,6 +7,7 @@ import (
 
 	"github.com/w-h-a/interpreter/internal/parser/ast/expression"
 	"github.com/w-h-a/interpreter/internal/parser/ast/expression/boolean"
+	"github.com/w-h-a/interpreter/internal/parser/ast/expression/function"
 	"github.com/w-h-a/interpreter/internal/parser/ast/expression/identifier"
 	ifexpression "github.com/w-h-a/interpreter/internal/parser/ast/expression/if"
 	"github.com/w-h-a/interpreter/internal/parser/ast/expression/integer"
@@ -144,6 +145,8 @@ func (p *Parser) parseExpression(precedence int) (expression.Expression, error) 
 		exp, err = p.parseGroupedExpression()
 	case token.If:
 		exp, err = p.parseIfExpression()
+	case token.Function:
+		exp, err = p.parseFunctionExpression()
 	case token.Int:
 		exp, err = p.parseIntegerExpression()
 	case token.True, token.False:
@@ -152,7 +155,7 @@ func (p *Parser) parseExpression(precedence int) (expression.Expression, error) 
 		parsePrefixExpression := p.parsePrefixFns[p.curToken.Type]
 
 		if parsePrefixExpression == nil {
-			errDetail := fmt.Sprintf("no parse prefix function for %s found", p.curToken.Type)
+			errDetail := fmt.Sprintf("no parse function for %s found", p.curToken.Type)
 			p.appendError(errDetail)
 			return nil, errors.New(errDetail)
 		}
@@ -257,6 +260,74 @@ func (p *Parser) parseIfExpression() (expression.Expression, error) {
 	}
 
 	return exp, nil
+}
+
+func (p *Parser) parseFunctionExpression() (expression.Expression, error) {
+	exp := &function.Function{Token: p.curToken}
+
+	if p.peekToken.Type != token.ParenLeft {
+		errDetail := fmt.Sprintf("expected next token to be %s, got %s", token.ParenLeft, p.peekToken.Type)
+		return nil, errors.New(errDetail)
+	}
+
+	p.nextToken() // consume 'fn'
+
+	var err error
+
+	exp.Parameters, err = p.parseFunctionParameters()
+	if err != nil {
+		return nil, err
+	}
+
+	if p.peekToken.Type != token.BraceLeft {
+		errDetail := fmt.Sprintf("expected next token to be %s, got %s", token.BraceLeft, p.peekToken.Type)
+		return nil, errors.New(errDetail)
+	}
+
+	p.nextToken() // consume ')'
+
+	exp.Body, _ = p.parseBlockStatement()
+
+	return exp, nil
+}
+
+func (p *Parser) parseFunctionParameters() ([]*identifier.Identifier, error) {
+	identifiers := []*identifier.Identifier{}
+
+	if p.peekToken.Type == token.ParenRight {
+		p.nextToken()
+		return identifiers, nil
+	}
+
+	p.nextToken() // consume '('
+
+	if p.curToken.Type != token.Ident {
+		errDetail := fmt.Sprintf("expected identifier as function parameter, got %s", p.curToken.Type)
+		return nil, errors.New(errDetail)
+	}
+
+	ident := &identifier.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+	identifiers = append(identifiers, ident)
+
+	for p.peekToken.Type == token.Comma {
+		p.nextToken() // consume previous param
+		p.nextToken() // consume ','
+		if p.curToken.Type != token.Ident {
+			errDetail := fmt.Sprintf("expected identifier as function parameter, got %s", p.curToken.Type)
+			return nil, errors.New(errDetail)
+		}
+		ident := &identifier.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+		identifiers = append(identifiers, ident)
+	}
+
+	if p.peekToken.Type != token.ParenRight {
+		errDetail := fmt.Sprintf("expected next token to be %s, got %s", token.ParenRight, p.peekToken.Type)
+		return nil, errors.New(errDetail)
+	}
+
+	p.nextToken() // consume last param
+
+	return identifiers, nil
 }
 
 func (p *Parser) parseIntegerExpression() (expression.Expression, error) {

@@ -9,6 +9,7 @@ import (
 	"github.com/w-h-a/interpreter/internal/parser"
 	"github.com/w-h-a/interpreter/internal/parser/ast/expression"
 	"github.com/w-h-a/interpreter/internal/parser/ast/expression/boolean"
+	"github.com/w-h-a/interpreter/internal/parser/ast/expression/function"
 	"github.com/w-h-a/interpreter/internal/parser/ast/expression/identifier"
 	ifexpression "github.com/w-h-a/interpreter/internal/parser/ast/expression/if"
 	infixoperator "github.com/w-h-a/interpreter/internal/parser/ast/expression/infix_operator"
@@ -35,6 +36,11 @@ type expectedIfExpression struct {
 	condition      expectedInfixOperatorExpression
 	consequenceLen int
 	alternativeLen int
+}
+
+type expectedFunctionExpression struct {
+	params  []string
+	bodyLen int
 }
 
 func TestParseProgram(t *testing.T) {
@@ -84,11 +90,10 @@ let 838383;
 `,
 			expectErr: true,
 			testErrsFn: func(t *testing.T, errors []string) {
-				t.Logf("errors %+v", errors)
 				require.Equal(t, 4, len(errors))
 				testParseErrors(t, "expected next token to be =, got INT", errors[0])
 				testParseErrors(t, "expected next token to be IDENT, got =", errors[1])
-				testParseErrors(t, "no parse prefix function for = found", errors[2])
+				testParseErrors(t, "no parse function for = found", errors[2])
 				testParseErrors(t, "expected next token to be IDENT, got INT", errors[3])
 			},
 		},
@@ -191,6 +196,44 @@ if (x > y) { x } else { y };
 				})
 			},
 			expectErr: false,
+		},
+		{
+			name: "function expressions",
+			input: `
+fn(x, y) { x + y; };
+fn() {};
+fn(x, y, z) {};
+`,
+			testFn: func(t *testing.T, program *statement.Program) {
+				require.Equal(t, 3, len(program.Statements))
+				testExpressionStatement(t, program.Statements[0], expectedFunctionExpression{
+					params:  []string{"x", "y"},
+					bodyLen: 1,
+				})
+				testExpressionStatement(t, program.Statements[1], expectedFunctionExpression{
+					params:  []string{},
+					bodyLen: 0,
+				})
+				testExpressionStatement(t, program.Statements[2], expectedFunctionExpression{
+					params:  []string{"x", "y", "z"},
+					bodyLen: 0,
+				})
+			},
+			expectErr: false,
+		},
+		{
+			name: "malformed function expressions",
+			input: `
+fn(5) {};
+`,
+			expectErr: true,
+			testErrsFn: func(t *testing.T, errors []string) {
+				require.Equal(t, 4, len(errors))
+				testParseErrors(t, `failed to parse expression literal "5": expected identifier as function parameter, got INT`, errors[0])
+				testParseErrors(t, "no parse function for ) found", errors[1])
+				testParseErrors(t, "no parse function for { found", errors[2])
+				testParseErrors(t, "no parse function for } found", errors[3])
+			},
 		},
 		{
 			name:  "program string 1",
@@ -373,12 +416,13 @@ if (x > y) { x } else { y };
 			program := p.ParseProgram()
 			errors := p.Errors()
 
+			t.Logf("ERRORS: %v", errors)
+
 			if tc.expectErr {
 				tc.testErrsFn(t, errors)
 				return
 			}
 
-			t.Logf("ERRORS: %v", errors)
 			require.Equal(t, 0, len(errors))
 			tc.testFn(t, program)
 		})
@@ -446,6 +490,14 @@ func testExpression(t *testing.T, e expression.Expression, expected any) {
 		} else {
 			require.Nil(t, ifExpression.Alternative)
 		}
+	case expectedFunctionExpression:
+		functionExpression, ok := e.(*function.Function)
+		require.True(t, ok)
+		require.Equal(t, len(v.params), len(functionExpression.Parameters))
+		for i, ident := range v.params {
+			testExpression(t, functionExpression.Parameters[i], ident)
+		}
+		require.Equal(t, v.bodyLen, len(functionExpression.Body.Statements))
 	default:
 		t.Errorf("Expression assertion type not handled. got=%T", expected)
 	}
