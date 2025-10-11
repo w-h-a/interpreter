@@ -2,6 +2,7 @@ package parser
 
 import (
 	"github.com/w-h-a/interpreter/internal/parser/ast/expression"
+	"github.com/w-h-a/interpreter/internal/parser/ast/expression/call"
 	infixoperator "github.com/w-h-a/interpreter/internal/parser/ast/expression/infix_operator"
 	prefixoperator "github.com/w-h-a/interpreter/internal/parser/ast/expression/prefix_operator"
 )
@@ -48,4 +49,17 @@ func parseInfixOperatorExpression(p *Parser, left expression.Expression) (expres
 	}
 
 	return expression, nil
+}
+
+func parseCallExpression(p *Parser, function expression.Expression) (expression.Expression, error) {
+	exp := &call.Call{Token: p.curToken, Function: function}
+
+	var err error
+
+	exp.Arguments, err = p.parseCallArguments()
+	if err != nil {
+		return nil, err
+	}
+
+	return exp, nil
 }

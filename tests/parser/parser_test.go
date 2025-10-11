@@ -9,6 +9,7 @@ import (
 	"github.com/w-h-a/interpreter/internal/parser"
 	"github.com/w-h-a/interpreter/internal/parser/ast/expression"
 	"github.com/w-h-a/interpreter/internal/parser/ast/expression/boolean"
+	"github.com/w-h-a/interpreter/internal/parser/ast/expression/call"
 	"github.com/w-h-a/interpreter/internal/parser/ast/expression/function"
 	"github.com/w-h-a/interpreter/internal/parser/ast/expression/identifier"
 	ifexpression "github.com/w-h-a/interpreter/internal/parser/ast/expression/if"
@@ -36,6 +37,11 @@ type expectedIfExpression struct {
 	condition      expectedInfixOperatorExpression
 	consequenceLen int
 	alternativeLen int
+}
+
+type expectedCallExpression struct {
+	function string
+	args     []any
 }
 
 type expectedFunctionExpression struct {
@@ -193,6 +199,27 @@ if (x > y) { x } else { y };
 					condition:      expectedInfixOperatorExpression{operator: ">", left: "x", right: "y"},
 					consequenceLen: 1,
 					alternativeLen: 1,
+				})
+			},
+			expectErr: false,
+		},
+		{
+			name: "call expressions",
+			input: `
+add(1, 2 * 3);
+`,
+			testFn: func(t *testing.T, program *statement.Program) {
+				require.Equal(t, 1, len(program.Statements))
+				testExpressionStatement(t, program.Statements[0], expectedCallExpression{
+					function: "add",
+					args: []any{
+						1,
+						expectedInfixOperatorExpression{
+							operator: "*",
+							left:     2,
+							right:    3,
+						},
+					},
 				})
 			},
 			expectErr: false,
@@ -406,6 +433,33 @@ fn(5) {};
 			},
 			expectErr: false,
 		},
+		{
+			name:  "program string 20",
+			input: `a + add(b * c) + d`,
+			testFn: func(t *testing.T, program *statement.Program) {
+				got := program.String()
+				require.Equal(t, "((a + add((b * c))) + d)", got)
+			},
+			expectErr: false,
+		},
+		{
+			name:  "program string 21",
+			input: `add(a, b, 1, 2 * 3, 4 + 5, add(6, 7 * 8))`,
+			testFn: func(t *testing.T, program *statement.Program) {
+				got := program.String()
+				require.Equal(t, "add(a, b, 1, (2 * 3), (4 + 5), add(6, (7 * 8)))", got)
+			},
+			expectErr: false,
+		},
+		{
+			name:  "program string 22",
+			input: `add(a + b + c * d / f + g)`,
+			testFn: func(t *testing.T, program *statement.Program) {
+				got := program.String()
+				require.Equal(t, "add((((a + b) + ((c * d) / f)) + g))", got)
+			},
+			expectErr: false,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -489,6 +543,13 @@ func testExpression(t *testing.T, e expression.Expression, expected any) {
 			require.Equal(t, v.alternativeLen, len(ifExpression.Alternative.Statements))
 		} else {
 			require.Nil(t, ifExpression.Alternative)
+		}
+	case expectedCallExpression:
+		callExpression, ok := e.(*call.Call)
+		require.True(t, ok)
+		testExpression(t, callExpression.Function, v.function)
+		for i, arg := range v.args {
+			testExpression(t, callExpression.Arguments[i], arg)
 		}
 	case expectedFunctionExpression:
 		functionExpression, ok := e.(*function.Function)
