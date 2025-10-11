@@ -6,7 +6,7 @@ import (
 	"io"
 
 	"github.com/w-h-a/interpreter/internal/lexer"
-	"github.com/w-h-a/interpreter/internal/token"
+	"github.com/w-h-a/interpreter/internal/parser"
 )
 
 const PROMPT = ">> "
@@ -22,14 +22,42 @@ func StartRepl(in io.Reader, out io.Writer) error {
 		}
 
 		line := scanner.Text()
-
 		tks := lexer.Lex(line)
+		p := parser.New(tks)
 
-		for tk := range tks {
-			if tk.Type == token.EOF {
-				break
+		program := p.ParseProgram()
+
+		if len(p.Errors()) > 0 {
+			if err := printParserErrors(out, p.Errors()); err != nil {
+				return err
 			}
-			fmt.Fprintf(out, "%+v\n", tk)
+			continue
+		}
+
+		if _, err := io.WriteString(out, program.String()); err != nil {
+			return err
+		}
+
+		if _, err := io.WriteString(out, "\n"); err != nil {
+			return err
 		}
 	}
+}
+
+func printParserErrors(out io.Writer, errors []string) error {
+	if _, err := io.WriteString(out, "Whoops! We ran into some monkey business here!\n"); err != nil {
+		return err
+	}
+
+	if _, err := io.WriteString(out, " parser errors:\n"); err != nil {
+		return err
+	}
+
+	for _, msg := range errors {
+		if _, err := fmt.Fprintf(out, "\t%s\n", msg); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
