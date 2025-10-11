@@ -262,6 +262,43 @@ func (p *Parser) parseIfExpression() (expression.Expression, error) {
 	return exp, nil
 }
 
+func (p *Parser) parseCallArguments() ([]expression.Expression, error) {
+	args := []expression.Expression{}
+
+	if p.peekToken.Type == token.ParenRight {
+		p.nextToken()
+		return args, nil
+	}
+
+	p.nextToken() // consume '('
+
+	exp, err := p.parseExpression(LOWEST)
+	if err != nil {
+		return nil, err
+	}
+
+	args = append(args, exp)
+
+	for p.peekToken.Type == token.Comma {
+		p.nextToken() // consume previous arg
+		p.nextToken() // consume ','
+		exp, err := p.parseExpression(LOWEST)
+		if err != nil {
+			return nil, err
+		}
+		args = append(args, exp)
+	}
+
+	if p.peekToken.Type != token.ParenRight {
+		errDetail := fmt.Sprintf("expected next token to be %s, got %s", token.ParenRight, p.peekToken.Type)
+		return nil, errors.New(errDetail)
+	}
+
+	p.nextToken() // consume last arg
+
+	return args, nil
+}
+
 func (p *Parser) parseFunctionExpression() (expression.Expression, error) {
 	exp := &function.Function{Token: p.curToken}
 
@@ -393,6 +430,7 @@ func New(tks chan token.Token) *Parser {
 	p.registerParseInfixFn(token.Minus, parseInfixOperatorExpression)
 	p.registerParseInfixFn(token.Asterisk, parseInfixOperatorExpression)
 	p.registerParseInfixFn(token.Slash, parseInfixOperatorExpression)
+	p.registerParseInfixFn(token.ParenLeft, parseCallExpression)
 
 	p.nextToken()
 	p.nextToken()

@@ -9,6 +9,7 @@ const (
 	SUM
 	PRODUCT
 	PREFIX
+	CALL
 )
 
 var (
@@ -21,5 +22,6 @@ var (
 		token.Minus:        SUM,
 		token.Asterisk:     PRODUCT,
 		token.Slash:        PRODUCT,
+		token.ParenLeft:    CALL,
 	}
 )
