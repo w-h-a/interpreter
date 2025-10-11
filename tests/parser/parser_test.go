@@ -58,21 +58,6 @@ func TestParseProgram(t *testing.T) {
 		testErrsFn func(t *testing.T, errors []string)
 	}{
 		{
-			name: "let statements happy path",
-			input: `
-let x = 5;
-let y = 10;
-let foobar = 838383;
-`,
-			testFn: func(t *testing.T, program *statement.Program) {
-				require.Equal(t, 3, len(program.Statements))
-				testLetStatement(t, program.Statements[0], "x")
-				testLetStatement(t, program.Statements[1], "y")
-				testLetStatement(t, program.Statements[2], "foobar")
-			},
-			expectErr: false,
-		},
-		{
 			name: "return statements happy path",
 			input: `
 return 5;
@@ -81,9 +66,24 @@ return 993322;
 `,
 			testFn: func(t *testing.T, program *statement.Program) {
 				require.Equal(t, 3, len(program.Statements))
-				testReturnStatement(t, program.Statements[0])
-				testReturnStatement(t, program.Statements[1])
-				testReturnStatement(t, program.Statements[2])
+				testReturnStatement(t, program.Statements[0], 5)
+				testReturnStatement(t, program.Statements[1], 10)
+				testReturnStatement(t, program.Statements[2], 993322)
+			},
+			expectErr: false,
+		},
+		{
+			name: "let statements happy path",
+			input: `
+let x = 5;
+let y = true;
+let foobar = y;
+`,
+			testFn: func(t *testing.T, program *statement.Program) {
+				require.Equal(t, 3, len(program.Statements))
+				testLetStatement(t, program.Statements[0], "x", 5)
+				testLetStatement(t, program.Statements[1], "y", true)
+				testLetStatement(t, program.Statements[2], "foobar", "y")
 			},
 			expectErr: false,
 		},
@@ -483,18 +483,20 @@ fn(5) {};
 	}
 }
 
-func testLetStatement(t *testing.T, s statement.Statement, name string) {
+func testLetStatement(t *testing.T, s statement.Statement, name string, value any) {
 	require.Equal(t, "let", s.TokenLiteral())
 	letStmt, ok := s.(*let.Let)
 	require.True(t, ok)
 	require.Equal(t, name, letStmt.Name.TokenLiteral())
 	require.Equal(t, name, letStmt.Name.Value)
+	testExpression(t, letStmt.Value, value)
 }
 
-func testReturnStatement(t *testing.T, s statement.Statement) {
+func testReturnStatement(t *testing.T, s statement.Statement, value any) {
 	require.Equal(t, "return", s.TokenLiteral())
-	_, ok := s.(*returnstatement.Return)
+	returnStmt, ok := s.(*returnstatement.Return)
 	require.True(t, ok)
+	testExpression(t, returnStmt.Value, value)
 }
 
 func testExpressionStatement(t *testing.T, s statement.Statement, expected any) {

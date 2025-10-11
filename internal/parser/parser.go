@@ -49,13 +49,32 @@ func (p *Parser) Errors() []string {
 
 func (p *Parser) parseStatement() (statement.Statement, error) {
 	switch p.curToken.Type {
-	case token.Let:
-		return p.parseLetStatement()
 	case token.Return:
 		return p.parseReturnStatement()
+	case token.Let:
+		return p.parseLetStatement()
 	default:
 		return p.parseExpressionStatement()
 	}
+}
+
+func (p *Parser) parseReturnStatement() (*returnstatement.Return, error) {
+	stmt := &returnstatement.Return{Token: p.curToken}
+
+	p.nextToken()
+
+	var err error
+
+	stmt.Value, err = p.parseExpression(LOWEST)
+	if err != nil {
+		return nil, err
+	}
+
+	if p.peekToken.Type == token.Semicolon {
+		p.nextToken()
+	}
+
+	return stmt, nil
 }
 
 func (p *Parser) parseLetStatement() (*let.Let, error) {
@@ -77,25 +96,17 @@ func (p *Parser) parseLetStatement() (*let.Let, error) {
 		return nil, errors.New(errDetail)
 	}
 
-	p.nextToken()
+	p.nextToken() // consume identifier
+	p.nextToken() // consume assignment
 
-	// TODO: RHS expression
+	var err error
 
-	for p.curToken.Type != token.Semicolon {
-		p.nextToken()
+	stmt.Value, err = p.parseExpression(LOWEST)
+	if err != nil {
+		return nil, err
 	}
 
-	return stmt, nil
-}
-
-func (p *Parser) parseReturnStatement() (*returnstatement.Return, error) {
-	stmt := &returnstatement.Return{Token: p.curToken}
-
-	p.nextToken()
-
-	// TODO: expression
-
-	for p.curToken.Type != token.Semicolon {
+	if p.peekToken.Type == token.Semicolon {
 		p.nextToken()
 	}
 
