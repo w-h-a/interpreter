@@ -88,7 +88,7 @@ func (p *Parser) parseLetStatement() (*let.Let, error) {
 
 	p.nextToken()
 
-	stmt.Name = &identifier.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+	stmt.Name = &identifier.Identifier{Token: p.curToken, Value: p.curToken.Literal()}
 
 	if p.peekToken.Type != token.Assign {
 		errDetail := fmt.Sprintf("expected next token to be %s, got %s", token.Assign, p.peekToken.Type)
@@ -175,7 +175,7 @@ func (p *Parser) parseExpression(precedence int) (expression.Expression, error) 
 	}
 
 	if err != nil {
-		errDetail := fmt.Sprintf("failed to parse expression literal %q", p.curToken.Literal)
+		errDetail := fmt.Sprintf("failed to parse expression literal %q", p.curToken.Literal())
 		p.appendError(fmt.Sprintf("%s: %v", errDetail, err))
 		return nil, fmt.Errorf("%s: %w", errDetail, err)
 	}
@@ -191,7 +191,7 @@ func (p *Parser) parseExpression(precedence int) (expression.Expression, error) 
 
 		exp, err = parseInfixExpression(p, exp)
 		if err != nil {
-			errDetail := fmt.Sprintf("failed to parse infix expression literal %q", p.curToken.Literal)
+			errDetail := fmt.Sprintf("failed to parse infix expression literal %q", p.curToken.Literal())
 			p.appendError(fmt.Sprintf("%s: %v", errDetail, err))
 			return nil, fmt.Errorf("%s: %w", errDetail, err)
 		}
@@ -201,7 +201,7 @@ func (p *Parser) parseExpression(precedence int) (expression.Expression, error) 
 }
 
 func (p *Parser) parseIdentifierExpression() (expression.Expression, error) {
-	return &identifier.Identifier{Token: p.curToken, Value: p.curToken.Literal}, nil
+	return &identifier.Identifier{Token: p.curToken, Value: p.curToken.Literal()}, nil
 }
 
 func (p *Parser) parseGroupedExpression() (expression.Expression, error) {
@@ -354,7 +354,7 @@ func (p *Parser) parseFunctionParameters() ([]*identifier.Identifier, error) {
 		return nil, errors.New(errDetail)
 	}
 
-	ident := &identifier.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+	ident := &identifier.Identifier{Token: p.curToken, Value: p.curToken.Literal()}
 	identifiers = append(identifiers, ident)
 
 	for p.peekToken.Type == token.Comma {
@@ -364,7 +364,7 @@ func (p *Parser) parseFunctionParameters() ([]*identifier.Identifier, error) {
 			errDetail := fmt.Sprintf("expected identifier as function parameter, got %s", p.curToken.Type)
 			return nil, errors.New(errDetail)
 		}
-		ident := &identifier.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+		ident := &identifier.Identifier{Token: p.curToken, Value: p.curToken.Literal()}
 		identifiers = append(identifiers, ident)
 	}
 
@@ -379,7 +379,7 @@ func (p *Parser) parseFunctionParameters() ([]*identifier.Identifier, error) {
 }
 
 func (p *Parser) parseIntegerExpression() (expression.Expression, error) {
-	value, err := strconv.ParseInt(p.curToken.Literal, 0, 64)
+	value, err := strconv.ParseInt(p.curToken.Literal(), 0, 64)
 	if err != nil {
 		return nil, err
 	}

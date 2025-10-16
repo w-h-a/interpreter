@@ -3,19 +3,19 @@ package infixoperator
 import (
 	"strings"
 
+	"github.com/w-h-a/interpreter/internal/ast"
 	"github.com/w-h-a/interpreter/internal/ast/expression"
-	"github.com/w-h-a/interpreter/internal/token"
 )
 
 type InfixOperator struct {
-	Token    token.Token
+	Token    ast.Token
 	Operator string
 	Left     expression.Expression
 	Right    expression.Expression
 }
 
 func (e *InfixOperator) TokenLiteral() string {
-	return e.Token.Literal
+	return e.Token.Literal()
 }
 
 func (e *InfixOperator) String() string {

@@ -15,7 +15,7 @@ type (
 func parsePrefixOperatorExpression(p *Parser) (expression.Expression, error) {
 	expression := &prefixoperator.PrefixOperator{
 		Token:    p.curToken,
-		Operator: p.curToken.Literal,
+		Operator: p.curToken.Literal(),
 	}
 
 	p.nextToken()
@@ -33,7 +33,7 @@ func parsePrefixOperatorExpression(p *Parser) (expression.Expression, error) {
 func parseInfixOperatorExpression(p *Parser, left expression.Expression) (expression.Expression, error) {
 	expression := &infixoperator.InfixOperator{
 		Token:    p.curToken,
-		Operator: p.curToken.Literal,
+		Operator: p.curToken.Literal(),
 		Left:     left,
 	}
 

@@ -137,7 +137,7 @@ func runLexerTest(t *testing.T, wants []want, tks chan token.Token) {
 	for _, want := range wants {
 		tk := <-tks
 		require.Equal(t, want.expectedType, tk.Type)
-		require.Equal(t, want.expectedLiteral, tk.Literal)
+		require.Equal(t, want.expectedLiteral, tk.Literal())
 	}
 	_, ok := <-tks
 	require.False(t, ok, "channel was not closed")

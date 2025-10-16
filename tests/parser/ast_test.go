@@ -21,13 +21,13 @@ func TestAST(t *testing.T) {
 			program: &statement.Program{
 				Statements: []statement.Statement{
 					&let.Let{
-						Token: token.Token{Type: token.Let, Literal: "let"},
+						Token: token.Factory(token.Let, "let"),
 						Name: &identifier.Identifier{
-							Token: token.Token{Type: token.Ident, Literal: "myVar"},
+							Token: token.Factory(token.Ident, "myVar"),
 							Value: "myVar",
 						},
 						Value: &identifier.Identifier{
-							Token: token.Token{Type: token.Ident, Literal: "anotherVar"},
+							Token: token.Factory(token.Ident, "anotherVar"),
 							Value: "anotherVar",
 						},
 					},

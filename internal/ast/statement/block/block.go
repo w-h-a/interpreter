@@ -3,17 +3,17 @@ package block
 import (
 	"strings"
 
+	"github.com/w-h-a/interpreter/internal/ast"
 	"github.com/w-h-a/interpreter/internal/ast/statement"
-	"github.com/w-h-a/interpreter/internal/token"
 )
 
 type Block struct {
-	Token      token.Token
+	Token      ast.Token
 	Statements []statement.Statement
 }
 
 func (s *Block) TokenLiteral() string {
-	return s.Token.Literal
+	return s.Token.Literal()
 }
 
 func (s *Block) String() string {
