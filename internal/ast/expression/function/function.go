@@ -3,19 +3,19 @@ package function
 import (
 	"strings"
 
+	"github.com/w-h-a/interpreter/internal/ast"
 	"github.com/w-h-a/interpreter/internal/ast/expression/identifier"
 	"github.com/w-h-a/interpreter/internal/ast/statement/block"
-	"github.com/w-h-a/interpreter/internal/token"
 )
 
 type Function struct {
-	Token      token.Token
+	Token      ast.Token
 	Parameters []*identifier.Identifier
 	Body       *block.Block
 }
 
 func (e *Function) TokenLiteral() string {
-	return e.Token.Literal
+	return e.Token.Literal()
 }
 
 func (e *Function) String() string {

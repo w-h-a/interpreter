@@ -1,16 +1,16 @@
 package identifier
 
 import (
-	"github.com/w-h-a/interpreter/internal/token"
+	"github.com/w-h-a/interpreter/internal/ast"
 )
 
 type Identifier struct {
-	Token token.Token
+	Token ast.Token
 	Value string
 }
 
 func (e *Identifier) TokenLiteral() string {
-	return e.Token.Literal
+	return e.Token.Literal()
 }
 
 func (e *Identifier) String() string {

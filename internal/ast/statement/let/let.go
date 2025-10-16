@@ -3,19 +3,19 @@ package let
 import (
 	"strings"
 
+	"github.com/w-h-a/interpreter/internal/ast"
 	"github.com/w-h-a/interpreter/internal/ast/expression"
 	"github.com/w-h-a/interpreter/internal/ast/expression/identifier"
-	"github.com/w-h-a/interpreter/internal/token"
 )
 
 type Let struct {
-	Token token.Token
+	Token ast.Token
 	Name  *identifier.Identifier
 	Value expression.Expression
 }
 
 func (s *Let) TokenLiteral() string {
-	return s.Token.Literal
+	return s.Token.Literal()
 }
 
 func (s *Let) String() string {

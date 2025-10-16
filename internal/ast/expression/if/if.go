@@ -3,20 +3,20 @@ package ifexpression
 import (
 	"strings"
 
+	"github.com/w-h-a/interpreter/internal/ast"
 	"github.com/w-h-a/interpreter/internal/ast/expression"
 	"github.com/w-h-a/interpreter/internal/ast/statement/block"
-	"github.com/w-h-a/interpreter/internal/token"
 )
 
 type If struct {
-	Token       token.Token
+	Token       ast.Token
 	Condition   expression.Expression
 	Consequence *block.Block
 	Alternative *block.Block
 }
 
 func (e *If) TokenLiteral() string {
-	return e.Token.Literal
+	return e.Token.Literal()
 }
 
 func (e *If) String() string {

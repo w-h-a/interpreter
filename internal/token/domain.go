@@ -43,5 +43,9 @@ const (
 
 type Token struct {
 	Type    TokenType
-	Literal string
+	literal string
+}
+
+func (t Token) Literal() string {
+	return t.literal
 }

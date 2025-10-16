@@ -3,18 +3,18 @@ package prefixoperator
 import (
 	"strings"
 
+	"github.com/w-h-a/interpreter/internal/ast"
 	"github.com/w-h-a/interpreter/internal/ast/expression"
-	"github.com/w-h-a/interpreter/internal/token"
 )
 
 type PrefixOperator struct {
-	Token    token.Token
+	Token    ast.Token
 	Operator string
 	Right    expression.Expression
 }
 
 func (e *PrefixOperator) TokenLiteral() string {
-	return e.Token.Literal
+	return e.Token.Literal()
 }
 
 func (e *PrefixOperator) String() string {
