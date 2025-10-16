@@ -4,9 +4,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/w-h-a/interpreter/internal/parser/ast/expression/identifier"
-	"github.com/w-h-a/interpreter/internal/parser/ast/statement"
-	"github.com/w-h-a/interpreter/internal/parser/ast/statement/let"
+	"github.com/w-h-a/interpreter/internal/ast/expression/identifier"
+	"github.com/w-h-a/interpreter/internal/ast/statement"
+	"github.com/w-h-a/interpreter/internal/ast/statement/let"
 	"github.com/w-h-a/interpreter/internal/token"
 )
 

@@ -3,8 +3,8 @@ package let
 import (
 	"strings"
 
-	"github.com/w-h-a/interpreter/internal/parser/ast/expression"
-	"github.com/w-h-a/interpreter/internal/parser/ast/expression/identifier"
+	"github.com/w-h-a/interpreter/internal/ast/expression"
+	"github.com/w-h-a/interpreter/internal/ast/expression/identifier"
 	"github.com/w-h-a/interpreter/internal/token"
 )
 

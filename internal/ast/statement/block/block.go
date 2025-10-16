@@ -3,7 +3,7 @@ package block
 import (
 	"strings"
 
-	"github.com/w-h-a/interpreter/internal/parser/ast/statement"
+	"github.com/w-h-a/interpreter/internal/ast/statement"
 	"github.com/w-h-a/interpreter/internal/token"
 )
 

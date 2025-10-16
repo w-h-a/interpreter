@@ -3,7 +3,7 @@ package boolean
 import (
 	"fmt"
 
-	"github.com/w-h-a/interpreter/internal/evaluator/object"
+	"github.com/w-h-a/interpreter/internal/object"
 )
 
 type Boolean struct {

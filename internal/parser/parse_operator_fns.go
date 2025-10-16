@@ -1,10 +1,10 @@
 package parser
 
 import (
-	"github.com/w-h-a/interpreter/internal/parser/ast/expression"
-	"github.com/w-h-a/interpreter/internal/parser/ast/expression/call"
-	infixoperator "github.com/w-h-a/interpreter/internal/parser/ast/expression/infix_operator"
-	prefixoperator "github.com/w-h-a/interpreter/internal/parser/ast/expression/prefix_operator"
+	"github.com/w-h-a/interpreter/internal/ast/expression"
+	"github.com/w-h-a/interpreter/internal/ast/expression/call"
+	infixoperator "github.com/w-h-a/interpreter/internal/ast/expression/infix_operator"
+	prefixoperator "github.com/w-h-a/interpreter/internal/ast/expression/prefix_operator"
 )
 
 type (

@@ -1,6 +1,6 @@
 package null
 
-import "github.com/w-h-a/interpreter/internal/evaluator/object"
+import "github.com/w-h-a/interpreter/internal/object"
 
 type Null struct{}
 
