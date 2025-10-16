@@ -3,7 +3,7 @@ package statement
 import (
 	"strings"
 
-	"github.com/w-h-a/interpreter/internal/parser/ast"
+	"github.com/w-h-a/interpreter/internal/ast"
 )
 
 type Statement interface {

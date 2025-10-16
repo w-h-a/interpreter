@@ -3,8 +3,8 @@ package function
 import (
 	"strings"
 
-	"github.com/w-h-a/interpreter/internal/parser/ast/expression/identifier"
-	"github.com/w-h-a/interpreter/internal/parser/ast/statement/block"
+	"github.com/w-h-a/interpreter/internal/ast/expression/identifier"
+	"github.com/w-h-a/interpreter/internal/ast/statement/block"
 	"github.com/w-h-a/interpreter/internal/token"
 )
 

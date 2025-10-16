@@ -1,7 +1,7 @@
 package expressionstatement
 
 import (
-	"github.com/w-h-a/interpreter/internal/parser/ast/expression"
+	"github.com/w-h-a/interpreter/internal/ast/expression"
 	"github.com/w-h-a/interpreter/internal/token"
 )
 
